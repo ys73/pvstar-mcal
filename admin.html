@@ -246,19 +246,21 @@ const DEFAULT_DB = {
   ]
 };
 
-// ── IndexedDB open ──
-let _idb = null;
+// ── IndexedDB open (promise singleton — safe for concurrent calls) ──
+let _idbPromise = null;
 function openIDB() {
-  if (_idb) return Promise.resolve(_idb);
-  return new Promise(function(resolve, reject) {
-    var req = indexedDB.open(IDB_NAME, IDB_VER);
-    req.onupgradeneeded = function(e) {
-      var db = e.target.result;
-      if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
-    };
-    req.onsuccess = function(e) { _idb = e.target.result; resolve(_idb); };
-    req.onerror   = function(e) { reject(e.target.error); };
-  });
+  if (!_idbPromise) {
+    _idbPromise = new Promise(function(resolve, reject) {
+      var req = indexedDB.open(IDB_NAME, IDB_VER);
+      req.onupgradeneeded = function(e) {
+        var db = e.target.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+      };
+      req.onsuccess = function(e) { resolve(e.target.result); };
+      req.onerror   = function(e) { _idbPromise = null; reject(e.target.error); };
+    });
+  }
+  return _idbPromise;
 }
 
 async function loadDB() {
@@ -267,7 +269,12 @@ async function loadDB() {
     var req = idb.transaction(IDB_STORE,'readonly').objectStore(IDB_STORE).get(IDB_KEY);
     req.onsuccess = function(e) {
       var d = e.target.result;
-      resolve(d && d.accessories ? d : JSON.parse(JSON.stringify(DEFAULT_DB)));
+      // Strict validation: must have non-empty accessories array and packages array
+      if (d && Array.isArray(d.accessories) && d.accessories.length > 0 && Array.isArray(d.packages)) {
+        resolve(d);
+      } else {
+        resolve(JSON.parse(JSON.stringify(DEFAULT_DB)));
+      }
     };
     req.onerror = function() { resolve(JSON.parse(JSON.stringify(DEFAULT_DB))); };
   });
@@ -294,7 +301,12 @@ async function migrateLegacyData() {
     var raw = localStorage.getItem(LS_LEGACY);
     if (!raw) return;
     var parsed = JSON.parse(raw);
-    if (!parsed || !parsed.accessories) return;
+    // Reject empty or invalid legacy data
+    if (!parsed || !Array.isArray(parsed.accessories) || parsed.accessories.length === 0 ||
+        !Array.isArray(parsed.packages) || parsed.packages.length === 0) {
+      localStorage.removeItem(LS_LEGACY);
+      return;
+    }
     var existing = await loadDB();
     // Only migrate if IDB still has default (no custom data yet)
     var isDefault = existing.accessories.every(function(a) {
@@ -354,19 +366,21 @@ async function renderAccList(){
 }
 
 async function openAccModal(id){
-  _eAccId=id||null;_accImgs=[];_accAtts=[];
-  var db=await loadDB(),a=id?db.accessories.find(function(x){return x.id===id;}):null;
-  document.getElementById('accModalTitle').textContent=id?'编辑配件':'新增配件';
-  document.getElementById('acc-partNo').value=a?(a.partNo||''):'';
-  document.getElementById('acc-nameZh').value=a?(a.nameZh||''):'';
-  document.getElementById('acc-nameEn').value=a?(a.nameEn||''):'';
-  document.getElementById('acc-weight').value=a?(a.weight||''):'';
-  document.getElementById('acc-price').value=a?(a.price||''):'';
-  document.getElementById('acc-desc').value=a?(a.description||''):'';
-  _accImgs=a&&a.images?[...a.images]:[];
-  _accAtts=a&&a.attachments?[...a.attachments]:[];
-  renderAccImgs();renderAccAtts();
-  document.getElementById('accModal').classList.add('open');
+  try {
+    _eAccId=id||null;_accImgs=[];_accAtts=[];
+    var db=await loadDB(),a=id?db.accessories.find(function(x){return x.id===id;}):null;
+    document.getElementById('accModalTitle').textContent=id?'编辑配件':'新增配件';
+    document.getElementById('acc-partNo').value=a?(a.partNo||''):'';
+    document.getElementById('acc-nameZh').value=a?(a.nameZh||''):'';
+    document.getElementById('acc-nameEn').value=a?(a.nameEn||''):'';
+    document.getElementById('acc-weight').value=a?(a.weight||''):'';
+    document.getElementById('acc-price').value=a?(a.price||''):'';
+    document.getElementById('acc-desc').value=a?(a.description||''):'';
+    _accImgs=a&&a.images?[...a.images]:[];
+    _accAtts=a&&a.attachments?[...a.attachments]:[];
+    renderAccImgs();renderAccAtts();
+    document.getElementById('accModal').classList.add('open');
+  } catch(e) { showToast('打开失败: '+e.message,1); console.error('openAccModal:',e); }
 }
 function closeAccModal(){document.getElementById('accModal').classList.remove('open');}
 
@@ -409,22 +423,24 @@ async function renderPkgList(){
 }
 
 async function openPkgModal(id){
-  _ePkgId=id||null;_pkgImgs=[];_pkgContents=[];
-  var db=await loadDB(),p=id?db.packages.find(function(x){return x.id===id;}):null;
-  document.getElementById('pkgModalTitle').textContent=id?'编辑配件包':'新增配件包';
-  document.getElementById('pkg-sku').value=p?(p.sku||''):'';
-  document.getElementById('pkg-nameZh').value=p?(p.nameZh||''):'';
-  document.getElementById('pkg-nameEn').value=p?(p.nameEn||''):'';
-  document.getElementById('pkg-packSize').value=p?(p.packSize||''):'';
-  document.getElementById('pkg-weight').value=p?(p.weight||''):'';
-  document.getElementById('pkg-dimensions').value=p?(p.dimensions||''):'';
-  document.getElementById('pkg-price').value=p?(p.price||''):'';
-  document.getElementById('pkg-desc').value=p?(p.description||''):'';
-  document.getElementById('pkg-calcFrom').value=p?(p.calcFrom||'rails'):'rails';
-  _pkgImgs=p&&p.images?[...p.images]:[];
-  _pkgContents=p&&p.contents?p.contents.map(function(c){return Object.assign({},c);}):[];
-  renderPkgImgs();renderContentsEditor(db);
-  document.getElementById('pkgModal').classList.add('open');
+  try {
+    _ePkgId=id||null;_pkgImgs=[];_pkgContents=[];
+    var db=await loadDB(),p=id?db.packages.find(function(x){return x.id===id;}):null;
+    document.getElementById('pkgModalTitle').textContent=id?'编辑配件包':'新增配件包';
+    document.getElementById('pkg-sku').value=p?(p.sku||''):'';
+    document.getElementById('pkg-nameZh').value=p?(p.nameZh||''):'';
+    document.getElementById('pkg-nameEn').value=p?(p.nameEn||''):'';
+    document.getElementById('pkg-packSize').value=p?(p.packSize||''):'';
+    document.getElementById('pkg-weight').value=p?(p.weight||''):'';
+    document.getElementById('pkg-dimensions').value=p?(p.dimensions||''):'';
+    document.getElementById('pkg-price').value=p?(p.price||''):'';
+    document.getElementById('pkg-desc').value=p?(p.description||''):'';
+    document.getElementById('pkg-calcFrom').value=p?(p.calcFrom||'rails'):'rails';
+    _pkgImgs=p&&p.images?[...p.images]:[];
+    _pkgContents=p&&p.contents?p.contents.map(function(c){return Object.assign({},c);}):[];
+    renderPkgImgs();renderContentsEditor(db);
+    document.getElementById('pkgModal').classList.add('open');
+  } catch(e) { showToast('打开失败: '+e.message,1); console.error('openPkgModal:',e); }
 }
 function closePkgModal(){document.getElementById('pkgModal').classList.remove('open');}
 
@@ -497,8 +513,10 @@ function importDB(ev){
 
 /* ── Init ── */
 (async function(){
-  await migrateLegacyData();
-  renderAccList();
+  try {
+    await migrateLegacyData();
+    await renderAccList();
+  } catch(e) { console.error('Init error:', e); }
 })();
 </script>
 </body>
