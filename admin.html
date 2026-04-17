@@ -60,10 +60,12 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
 .empty{text-align:center;padding:48px;color:#bbb;font-size:13px;}
 #toast{position:fixed;bottom:22px;right:22px;background:#000;color:#fff;padding:10px 20px;font-size:13px;opacity:0;transition:opacity .3s;z-index:9999;pointer-events:none;}
 #toast.show{opacity:1;}
+#js-err{display:none;position:fixed;top:56px;left:0;right:0;background:#c00;color:#fff;padding:10px 20px;font-size:12px;z-index:9000;word-break:break-all;}
 </style>
 </head>
 <body>
 <div id="toast"></div>
+<div id="js-err"></div>
 
 <div class="topbar">
   <span class="topbar-title">&#9881; PVSTAR 后台数据管理</span>
@@ -115,6 +117,11 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
       <p style="font-size:13px;color:#555;margin-bottom:12px;">从 JSON 文件恢复数据（将覆盖当前数据，建议先备份）。</p>
       <label class="btn" style="cursor:pointer;display:inline-block;">&#8593; 选择文件导入 <input type="file" accept=".json" style="display:none;" onchange="importDB(event)"></label>
     </div>
+    <div class="card" style="margin-top:14px;border-color:#c00;">
+      <div class="card-title" style="margin-bottom:10px;color:#c00;">重置数据库</div>
+      <p style="font-size:13px;color:#555;margin-bottom:12px;">清除 IndexedDB 中所有数据并恢复默认配件列表（不可撤销）。</p>
+      <button class="btn btn-danger" onclick="clearDB()">&#8635; 重置为默认数据</button>
+    </div>
   </div>
 </div>
 
@@ -133,6 +140,16 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
     </div>
     <div class="field-row">
       <div class="field"><label>价格 Price (€)</label><input id="acc-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>品牌 Brand</label>
+        <select id="acc-brand" style="width:100%;padding:8px 10px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;background:#fff;">
+          <option value="">— 未指定 —</option>
+          <option value="PVSTAR">PVSTAR</option>
+          <option value="KSENG">KSENG</option>
+          <option value="CLENERGY">CLENERGY</option>
+        </select>
+      </div>
     </div>
     <div class="field"><label>产品描述 Description</label><textarea id="acc-desc" placeholder="规格、材质、用途等..."></textarea></div>
     <div class="field">
@@ -187,6 +204,16 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
         </select>
       </div>
     </div>
+    <div class="field-row">
+      <div class="field"><label>品牌 Brand</label>
+        <select id="pkg-brand" style="width:100%;padding:8px 10px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;background:#fff;">
+          <option value="">— 未指定 —</option>
+          <option value="PVSTAR">PVSTAR</option>
+          <option value="KSENG">KSENG</option>
+          <option value="CLENERGY">CLENERGY</option>
+        </select>
+      </div>
+    </div>
     <div class="field"><label>产品描述</label><textarea id="pkg-desc" placeholder="配件包说明..."></textarea></div>
     <div class="field">
       <label>图片 Images</label>
@@ -214,6 +241,16 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
 </div>
 
 <script>
+// ── Global error catcher ──
+window.onerror = function(msg, src, line) {
+  var el = document.getElementById('js-err');
+  if (el) { el.style.display = 'block'; el.textContent = 'JS Error: ' + msg + ' (' + src + ':' + line + ')'; }
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  var el = document.getElementById('js-err');
+  if (el) { el.style.display = 'block'; el.textContent = 'Async Error: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)); }
+});
 // ════════════════════════════════════════════
 //  IndexedDB storage (replaces localStorage)
 //  No size limit for images
@@ -226,23 +263,23 @@ const LS_LEGACY = 'pvstar_db'; // for one-time migration
 
 const DEFAULT_DB = {
   accessories: [
-    {id:'acc_rail',      partNo:'',nameZh:'导轨',      nameEn:'Rail',          imgKey:'p_rail',       images:[],weight:0,price:0,description:'',attachments:[]},
-    {id:'acc_hook',      partNo:'',nameZh:'挂钩',      nameEn:'Hook',          imgKey:'p_hook',       images:[],weight:0,price:0,description:'',attachments:[]},
-    {id:'acc_end_clamp', partNo:'',nameZh:'边压块',    nameEn:'End Clamp',     imgKey:'p_end_clamp',  images:[],weight:0,price:0,description:'',attachments:[]},
-    {id:'acc_mid_clamp', partNo:'',nameZh:'中压块',    nameEn:'Mid Clamp',     imgKey:'p_inter_clamp',images:[],weight:0,price:0,description:'',attachments:[]},
-    {id:'acc_rail_conn', partNo:'',nameZh:'导轨连接件',nameEn:'Rail Connector',imgKey:'p_rail_conn',  images:[],weight:0,price:0,description:'',attachments:[]},
-    {id:'acc_rail_cap',  partNo:'',nameZh:'导轨端盖',  nameEn:'Rail End Cap',  imgKey:'p_rail_cap',   images:[],weight:0,price:0,description:'',attachments:[]},
-    {id:'acc_washer',    partNo:'',nameZh:'穿刺垫片',  nameEn:'Grounding Clip',imgKey:'pp_washer',    images:[],weight:0,price:0,description:'',attachments:[]},
-    {id:'acc_cable_clip',partNo:'',nameZh:'线夹',      nameEn:'Cable Clip',    imgKey:'pp_cable_clip',images:[],weight:0,price:0,description:'',attachments:[]},
-    {id:'acc_grnd_lug',  partNo:'',nameZh:'接地块',    nameEn:'Grounding Lug', imgKey:'pp_grnd_lug',  images:[],weight:0,price:0,description:'',attachments:[]},
+    {id:'acc_rail',      partNo:'',nameZh:'导轨',      nameEn:'Rail',          imgKey:'p_rail',       images:[],weight:0,price:0,description:'',brand:'',attachments:[]},
+    {id:'acc_hook',      partNo:'',nameZh:'挂钩',      nameEn:'Hook',          imgKey:'p_hook',       images:[],weight:0,price:0,description:'',brand:'',attachments:[]},
+    {id:'acc_end_clamp', partNo:'',nameZh:'边压块',    nameEn:'End Clamp',     imgKey:'p_end_clamp',  images:[],weight:0,price:0,description:'',brand:'',attachments:[]},
+    {id:'acc_mid_clamp', partNo:'',nameZh:'中压块',    nameEn:'Mid Clamp',     imgKey:'p_inter_clamp',images:[],weight:0,price:0,description:'',brand:'',attachments:[]},
+    {id:'acc_rail_conn', partNo:'',nameZh:'导轨连接件',nameEn:'Rail Connector',imgKey:'p_rail_conn',  images:[],weight:0,price:0,description:'',brand:'',attachments:[]},
+    {id:'acc_rail_cap',  partNo:'',nameZh:'导轨端盖',  nameEn:'Rail End Cap',  imgKey:'p_rail_cap',   images:[],weight:0,price:0,description:'',brand:'',attachments:[]},
+    {id:'acc_washer',    partNo:'',nameZh:'穿刺垫片',  nameEn:'Grounding Clip',imgKey:'pp_washer',    images:[],weight:0,price:0,description:'',brand:'',attachments:[]},
+    {id:'acc_cable_clip',partNo:'',nameZh:'线夹',      nameEn:'Cable Clip',    imgKey:'pp_cable_clip',images:[],weight:0,price:0,description:'',brand:'',attachments:[]},
+    {id:'acc_grnd_lug',  partNo:'',nameZh:'接地块',    nameEn:'Grounding Lug', imgKey:'pp_grnd_lug',  images:[],weight:0,price:0,description:'',brand:'',attachments:[]},
   ],
   packages: [
-    {id:'pkg_rail',     sku:'8061010000018',nameZh:'导轨包',  nameEn:'Rail Pack',     imgKey:'pp_rail',     images:[],weight:0,dimensions:'',price:0,description:'',packSize:4, calcFrom:'rails',        contents:[{accessoryId:'acc_rail',     qty:4}]},
-    {id:'pkg_hook',     sku:'8061020000007',nameZh:'挂钩包',  nameEn:'Hook Pack',     imgKey:'pp_hook',     images:[],weight:0,dimensions:'',price:0,description:'',packSize:20,calcFrom:'hooks',        contents:[{accessoryId:'acc_hook',     qty:20}]},
-    {id:'pkg_end_clamp',sku:'8061030000013',nameZh:'边压块包',nameEn:'End Clamp Pack',imgKey:'pp_end_clamp',images:[],weight:0,dimensions:'',price:0,description:'',packSize:20,calcFrom:'endClamps',    contents:[{accessoryId:'acc_end_clamp',qty:20},{accessoryId:'acc_washer',   qty:20}]},
-    {id:'pkg_mid_clamp',sku:'8061040000013',nameZh:'中压块包',nameEn:'Mid Clamp Pack',imgKey:'pp_mid_clamp',images:[],weight:0,dimensions:'',price:0,description:'',packSize:20,calcFrom:'midClamps',    contents:[{accessoryId:'acc_mid_clamp',qty:20},{accessoryId:'acc_washer',   qty:20},{accessoryId:'acc_cable_clip',qty:20}]},
-    {id:'pkg_connector',sku:'8061050000017',nameZh:'连接件包',nameEn:'Connector Pack',imgKey:'pp_connector',images:[],weight:0,dimensions:'',price:0,description:'',packSize:10,calcFrom:'railConnectors',contents:[{accessoryId:'acc_rail_conn',qty:10}]},
-    {id:'pkg_accessory',sku:'8061080000008',nameZh:'配件包',  nameEn:'Accessory Pack',imgKey:'pp_accessory',images:[],weight:0,dimensions:'',price:0,description:'',packSize:10,calcFrom:'leftEndCaps',  contents:[{accessoryId:'acc_rail_cap', qty:10},{accessoryId:'acc_grnd_lug',  qty:6}]},
+    {id:'pkg_rail',     sku:'8061010000018',nameZh:'导轨包',  nameEn:'Rail Pack',     imgKey:'pp_rail',     images:[],weight:0,dimensions:'',price:0,description:'',brand:'',packSize:4, calcFrom:'rails',        contents:[{accessoryId:'acc_rail',     qty:4}]},
+    {id:'pkg_hook',     sku:'8061020000007',nameZh:'挂钩包',  nameEn:'Hook Pack',     imgKey:'pp_hook',     images:[],weight:0,dimensions:'',price:0,description:'',brand:'',packSize:20,calcFrom:'hooks',        contents:[{accessoryId:'acc_hook',     qty:20}]},
+    {id:'pkg_end_clamp',sku:'8061030000013',nameZh:'边压块包',nameEn:'End Clamp Pack',imgKey:'pp_end_clamp',images:[],weight:0,dimensions:'',price:0,description:'',brand:'',packSize:20,calcFrom:'endClamps',    contents:[{accessoryId:'acc_end_clamp',qty:20},{accessoryId:'acc_washer',   qty:20}]},
+    {id:'pkg_mid_clamp',sku:'8061040000013',nameZh:'中压块包',nameEn:'Mid Clamp Pack',imgKey:'pp_mid_clamp',images:[],weight:0,dimensions:'',price:0,description:'',brand:'',packSize:20,calcFrom:'midClamps',    contents:[{accessoryId:'acc_mid_clamp',qty:20},{accessoryId:'acc_washer',   qty:20},{accessoryId:'acc_cable_clip',qty:20}]},
+    {id:'pkg_connector',sku:'8061050000017',nameZh:'连接件包',nameEn:'Connector Pack',imgKey:'pp_connector',images:[],weight:0,dimensions:'',price:0,description:'',brand:'',packSize:10,calcFrom:'railConnectors',contents:[{accessoryId:'acc_rail_conn',qty:10}]},
+    {id:'pkg_accessory',sku:'8061080000008',nameZh:'配件包',  nameEn:'Accessory Pack',imgKey:'pp_accessory',images:[],weight:0,dimensions:'',price:0,description:'',brand:'',packSize:10,calcFrom:'leftEndCaps',  contents:[{accessoryId:'acc_rail_cap', qty:10},{accessoryId:'acc_grnd_lug',  qty:6}]},
   ]
 };
 
@@ -361,7 +398,7 @@ async function renderAccList(){
   if(!db.accessories.length){el.innerHTML='<div class="empty">暂无配件，点击"新增配件"添加</div>';return;}
   el.innerHTML=db.accessories.map(function(a){
     var img=a.images&&a.images.length?'<img src="'+a.images[0]+'" style="width:56px;height:48px;object-fit:contain;border:1px solid #e5e5e5;margin-right:12px;flex-shrink:0;">':'<div style="width:56px;height:48px;background:#f5f5f5;margin-right:12px;flex-shrink:0;border:1px solid #f0f0f0;"></div>';
-    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+a.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+a.nameEn+'</span>'+(a.partNo?'<div style="font-size:11px;color:#aaa;">料号: '+a.partNo+'</div>':'')+'</div></div><div class="card-actions"><button class="btn btn-sm" onclick="openAccModal(''+a.id+'')">编辑</button><button class="btn btn-sm btn-danger" onclick="deleteAcc(''+a.id+'')">删除</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;"><span>重量: <b>'+(a.weight||'—')+'</b> kg</span><span>价格: <b>'+(a.price>0?'€'+Number(a.price).toFixed(2):'—')+'</b></span>'+(a.description?'<span style="color:#aaa;">'+a.description.substring(0,80)+'</span>':'')+'</div>'+(a.attachments&&a.attachments.length?'<div style="margin-top:6px;">'+a.attachments.map(function(at){return '<a href="'+at.url+'" target="_blank" style="font-size:11px;color:#555;margin-right:8px;">📎 '+at.name+'</a>';}).join('')+'</div>':'')+'</div>';
+    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+a.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+a.nameEn+'</span>'+(a.brand?'<span style="font-size:10px;background:#000;color:#fff;padding:1px 6px;margin-left:4px;">'+a.brand+'</span>':'')+(a.partNo?'<div style="font-size:11px;color:#aaa;">料号: '+a.partNo+'</div>':'')+'</div></div><div class="card-actions"><button class="btn btn-sm" onclick="openAccModal(''+a.id+'')">编辑</button><button class="btn btn-sm btn-danger" onclick="deleteAcc(''+a.id+'')">删除</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;"><span>重量: <b>'+(a.weight||'—')+'</b> kg</span><span>价格: <b>'+(a.price>0?'€'+Number(a.price).toFixed(2):'—')+'</b></span>'+(a.description?'<span style="color:#aaa;">'+a.description.substring(0,80)+'</span>':'')+'</div>'+(a.attachments&&a.attachments.length?'<div style="margin-top:6px;">'+a.attachments.map(function(at){return '<a href="'+at.url+'" target="_blank" style="font-size:11px;color:#555;margin-right:8px;">📎 '+at.name+'</a>';}).join('')+'</div>':'')+'</div>';
   }).join('');
 }
 
@@ -376,6 +413,7 @@ async function openAccModal(id){
     document.getElementById('acc-weight').value=a?(a.weight||''):'';
     document.getElementById('acc-price').value=a?(a.price||''):'';
     document.getElementById('acc-desc').value=a?(a.description||''):'';
+    document.getElementById('acc-brand').value=a?(a.brand||''):'';
     _accImgs=a&&a.images?[...a.images]:[];
     _accAtts=a&&a.attachments?[...a.attachments]:[];
     renderAccImgs();renderAccAtts();
@@ -398,7 +436,7 @@ async function saveAcc(){
   var db=await loadDB();
   var nameZh=document.getElementById('acc-nameZh').value.trim();
   if(!nameZh){showToast('请填写名称（中文）',1);return;}
-  var data={id:_eAccId||('acc_'+uid()),partNo:document.getElementById('acc-partNo').value.trim(),nameZh:nameZh,nameEn:document.getElementById('acc-nameEn').value.trim(),imgKey:'',images:_accImgs,weight:parseFloat(document.getElementById('acc-weight').value)||0,price:parseFloat(document.getElementById('acc-price').value)||0,description:document.getElementById('acc-desc').value.trim(),attachments:_accAtts};
+  var data={id:_eAccId||('acc_'+uid()),partNo:document.getElementById('acc-partNo').value.trim(),nameZh:nameZh,nameEn:document.getElementById('acc-nameEn').value.trim(),imgKey:'',images:_accImgs,weight:parseFloat(document.getElementById('acc-weight').value)||0,price:parseFloat(document.getElementById('acc-price').value)||0,description:document.getElementById('acc-desc').value.trim(),brand:document.getElementById('acc-brand').value,attachments:_accAtts};
   if(_eAccId){var idx=db.accessories.findIndex(function(a){return a.id===_eAccId;});if(idx!==-1){data.imgKey=db.accessories[idx].imgKey||'';db.accessories[idx]=data;}}
   else db.accessories.push(data);
   if(await saveDB(db)){showToast(_eAccId?'配件已更新':'配件已添加');closeAccModal();renderAccList();}
@@ -418,7 +456,7 @@ async function renderPkgList(){
   el.innerHTML=db.packages.map(function(p){
     var img=p.images&&p.images.length?'<img src="'+p.images[0]+'" style="width:56px;height:48px;object-fit:contain;border:1px solid #e5e5e5;margin-right:12px;flex-shrink:0;">':'<div style="width:56px;height:48px;background:#f5f5f5;margin-right:12px;flex-shrink:0;border:1px solid #f0f0f0;"></div>';
     var contents=(p.contents||[]).map(function(c){var a=db.accessories.find(function(x){return x.id===c.accessoryId;});var n=a?(a.nameZh+' / '+a.nameEn):c.accessoryId;return '<span style="display:inline-flex;align-items:center;gap:3px;background:#f5f5f5;padding:2px 7px;margin:2px;font-size:11px;cursor:pointer;" onclick="showAccDetail(''+c.accessoryId+'')">'+n+' × '+c.qty+'</span>';}).join('');
-    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+p.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+p.nameEn+'</span><div style="font-size:11px;color:#aaa;">SKU: '+(p.sku||'—')+' | '+p.packSize+' pcs/pack | from: '+p.calcFrom+'</div></div></div><div class="card-actions"><button class="btn btn-sm" onclick="openPkgModal(''+p.id+'')">编辑</button><button class="btn btn-sm btn-danger" onclick="deletePkg(''+p.id+'')">删除</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;margin-bottom:8px;"><span>重量: <b>'+(p.weight||'—')+'</b> kg/pack</span><span>尺寸: <b>'+(p.dimensions||'—')+'</b></span><span>价格: <b>'+(p.price>0?'€'+Number(p.price).toFixed(2):'—')+'</b>/pack</span></div>'+(contents?'<div style="font-size:11px;color:#888;margin-bottom:4px;font-weight:500;">包内配件：</div>'+contents:'')+'</div>';
+    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+p.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+p.nameEn+'</span><div style="font-size:11px;color:#aaa;">'+(p.brand?'<span style="background:#000;color:#fff;font-size:10px;padding:1px 5px;margin-right:4px;">'+p.brand+'</span>':'')+'SKU: '+(p.sku||'—')+' | '+p.packSize+' pcs/pack | from: '+p.calcFrom+'</div></div></div><div class="card-actions"><button class="btn btn-sm" onclick="openPkgModal(''+p.id+'')">编辑</button><button class="btn btn-sm btn-danger" onclick="deletePkg(''+p.id+'')">删除</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;margin-bottom:8px;"><span>重量: <b>'+(p.weight||'—')+'</b> kg/pack</span><span>尺寸: <b>'+(p.dimensions||'—')+'</b></span><span>价格: <b>'+(p.price>0?'€'+Number(p.price).toFixed(2):'—')+'</b>/pack</span></div>'+(contents?'<div style="font-size:11px;color:#888;margin-bottom:4px;font-weight:500;">包内配件：</div>'+contents:'')+'</div>';
   }).join('');
 }
 
@@ -435,6 +473,7 @@ async function openPkgModal(id){
     document.getElementById('pkg-dimensions').value=p?(p.dimensions||''):'';
     document.getElementById('pkg-price').value=p?(p.price||''):'';
     document.getElementById('pkg-desc').value=p?(p.description||''):'';
+    document.getElementById('pkg-brand').value=p?(p.brand||''):'';
     document.getElementById('pkg-calcFrom').value=p?(p.calcFrom||'rails'):'rails';
     _pkgImgs=p&&p.images?[...p.images]:[];
     _pkgContents=p&&p.contents?p.contents.map(function(c){return Object.assign({},c);}):[];
@@ -466,7 +505,7 @@ async function savePkg(){
   var db=await loadDB();
   var nameZh=document.getElementById('pkg-nameZh').value.trim();
   if(!nameZh){showToast('请填写名称（中文）',1);return;}
-  var data={id:_ePkgId||('pkg_'+uid()),sku:document.getElementById('pkg-sku').value.trim(),nameZh:nameZh,nameEn:document.getElementById('pkg-nameEn').value.trim(),imgKey:'',images:_pkgImgs,weight:parseFloat(document.getElementById('pkg-weight').value)||0,dimensions:document.getElementById('pkg-dimensions').value.trim(),price:parseFloat(document.getElementById('pkg-price').value)||0,description:document.getElementById('pkg-desc').value.trim(),packSize:parseInt(document.getElementById('pkg-packSize').value)||1,calcFrom:document.getElementById('pkg-calcFrom').value,contents:_pkgContents.filter(function(c){return c.accessoryId;})};
+  var data={id:_ePkgId||('pkg_'+uid()),sku:document.getElementById('pkg-sku').value.trim(),nameZh:nameZh,nameEn:document.getElementById('pkg-nameEn').value.trim(),imgKey:'',images:_pkgImgs,weight:parseFloat(document.getElementById('pkg-weight').value)||0,dimensions:document.getElementById('pkg-dimensions').value.trim(),price:parseFloat(document.getElementById('pkg-price').value)||0,description:document.getElementById('pkg-desc').value.trim(),brand:document.getElementById('pkg-brand').value,packSize:parseInt(document.getElementById('pkg-packSize').value)||1,calcFrom:document.getElementById('pkg-calcFrom').value,contents:_pkgContents.filter(function(c){return c.accessoryId;})};
   if(_ePkgId){var idx=db.packages.findIndex(function(p){return p.id===_ePkgId;});if(idx!==-1){data.imgKey=db.packages[idx].imgKey||'';db.packages[idx]=data;}}
   else db.packages.push(data);
   if(await saveDB(db)){showToast(_ePkgId?'配件包已更新':'配件包已添加');closePkgModal();renderPkgList();}
@@ -509,6 +548,22 @@ function importDB(ev){
     }catch(err){showToast('导入失败: '+err.message,1);}
   };
   r.readAsText(f);ev.target.value='';
+}
+
+
+/* ── Clear / reset DB ── */
+async function clearDB(){
+  if(!confirm('确定要清除所有数据并恢复默认？此操作不可撤销！'))return;
+  try{
+    var idb=await openIDB();
+    await new Promise(function(resolve,reject){
+      var req=idb.transaction(IDB_STORE,'readwrite').objectStore(IDB_STORE).delete(IDB_KEY);
+      req.onsuccess=resolve; req.onerror=function(e){reject(e.target.error);};
+    });
+    showToast('已重置为默认数据');
+    await renderAccList();
+    renderPkgList();
+  }catch(e){showToast('重置失败: '+e.message,1);}
 }
 
 /* ── Init ── */
