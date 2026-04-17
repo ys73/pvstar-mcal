@@ -131,7 +131,7 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
     <button class="modal-close" onclick="closeAccModal()">&times;</button>
     <div class="modal-title" id="accModalTitle">新增配件</div>
     <div class="field-row">
-      <div class="field"><label id="acc-partNo-label">料号 Part No.</label><input id="acc-partNo" placeholder="留空则不显示"></div>
+      <div class="field"><label id="acc-partNo-label">料号 Part No.</label><input id="acc-partNo" placeholder=""></div>
       <div class="field"><label id="acc-nameZh-label">名称（中文）*</label><input id="acc-nameZh" placeholder="例：导轨"></div>
     </div>
     <div class="field-row">
@@ -160,8 +160,8 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
     <div class="field">
       <label id="acc-attach-label">附件 Attachments（说明书、安装视频链接等）</label>
       <div style="display:flex;gap:6px;margin-bottom:6px;">
-        <input id="acc-aname" placeholder="名称" style="flex:1;padding:6px 8px;border:1px solid #ddd;font-size:12px;font-family:'Inter',sans-serif;">
-        <input id="acc-aurl"  placeholder="URL 链接" style="flex:2;padding:6px 8px;border:1px solid #ddd;font-size:12px;font-family:'Inter',sans-serif;">
+        <input id="acc-aname" id="acc-aname-inp" placeholder="名称" style="flex:1;padding:6px 8px;border:1px solid #ddd;font-size:12px;font-family:'Inter',sans-serif;">
+        <input id="acc-aurl"  id="acc-aurl-inp" placeholder="URL 链接" style="flex:2;padding:6px 8px;border:1px solid #ddd;font-size:12px;font-family:'Inter',sans-serif;">
         <button class="btn btn-sm" onclick="addAccAttach()">添加</button>
       </div>
       <div id="acc-alist"></div>
@@ -195,12 +195,12 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
       <div class="field">
         <label id="pkg-calc-label">计算来源 Calc From</label>
         <select id="pkg-calcFrom">
-          <option value="rails">rails（导轨数量）</option>
-          <option value="hooks">hooks（挂钩数量）</option>
-          <option value="endClamps">endClamps（边压块数量）</option>
-          <option value="midClamps">midClamps（中压块数量）</option>
-          <option value="railConnectors">railConnectors（连接件数量）</option>
-          <option value="leftEndCaps">leftEndCaps（端盖对数）</option>
+          <option value="rails" data-i18n-val="rails">rails（导轨数量）</option>
+          <option value="hooks" data-i18n-val="hooks">hooks（挂钩数量）</option>
+          <option value="endClamps" data-i18n-val="endClamps">endClamps（边压块数量）</option>
+          <option value="midClamps" data-i18n-val="midClamps">midClamps（中压块数量）</option>
+          <option value="railConnectors" data-i18n-val="railConnectors">railConnectors（连接件数量）</option>
+          <option value="leftEndCaps" data-i18n-val="leftEndCaps">leftEndCaps（端盖对数）</option>
         </select>
       </div>
     </div>
@@ -350,6 +350,32 @@ function setAdminLang(l) {
   var bz = document.getElementById('adminBtnZh'), be = document.getElementById('adminBtnEn');
   if(bz){ bz.style.background = l==='zh'?'#555':'transparent'; bz.style.color = l==='zh'?'#fff':'#ccc'; }
   if(be){ be.style.background = l==='en'?'#555':'transparent'; be.style.color = l==='en'?'#fff':'#ccc'; }
+  // Update placeholders
+  var ph = {
+    zh: { 'acc-nameZh':'例：导轨','acc-desc':'规格、材质、用途等...','acc-aname':'名称','acc-aurl':'URL 链接',
+          'pkg-sku':'例：8061010000018','pkg-nameZh':'例：导轨包','pkg-packSize':'例：4',
+          'pkg-dimensions':'例：120×30×30','pkg-desc':'配件包说明...' },
+    en: { 'acc-nameZh':'e.g. Rail','acc-desc':'Specs, material, usage...','acc-aname':'Name','acc-aurl':'URL link',
+          'pkg-sku':'e.g. 8061010000018','pkg-nameZh':'e.g. Rail Pack','pkg-packSize':'e.g. 4',
+          'pkg-dimensions':'e.g. 120×30×30','pkg-desc':'Pack description...' }
+  };
+  Object.keys(ph[l]).forEach(function(id){
+    var el=document.getElementById(id); if(el) el.placeholder=ph[l][id];
+  });
+  // Also update standalone placeholder inputs (attach name/url)
+  var an=document.getElementById('acc-aname-inp'); if(an) an.placeholder=ph[l]['acc-aname'];
+  var au=document.getElementById('acc-aurl-inp'); if(au) au.placeholder=ph[l]['acc-aurl'];
+  // Update calcFrom select options
+  var cfLabels = {
+    zh:{ rails:'rails（导轨数量）',hooks:'hooks（挂钩数量）',endClamps:'endClamps（边压块数量）',
+         midClamps:'midClamps（中压块数量）',railConnectors:'railConnectors（连接件数量）',leftEndCaps:'leftEndCaps（端盖对数）'},
+    en:{ rails:'rails (rail count)',hooks:'hooks (hook count)',endClamps:'endClamps (end clamp count)',
+         midClamps:'midClamps (mid clamp count)',railConnectors:'railConnectors (connector count)',leftEndCaps:'leftEndCaps (end cap pairs)'}
+  };
+  var cf=document.getElementById('pkg-calcFrom');
+  if(cf) Array.from(cf.options).forEach(function(opt){
+    if(cfLabels[l][opt.value]) opt.textContent=cfLabels[l][opt.value];
+  });
   // Re-render the currently visible panel
   var accPanel = document.getElementById('panel-acc');
   var pkgPanel = document.getElementById('panel-pkg');

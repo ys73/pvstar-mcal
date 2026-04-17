@@ -633,6 +633,7 @@ const T = {
       'Grounding Clip, Cable Clip & Grounding Lug included in accessory kit',
       'If more than 12 panels per row, the rail may be too long — to prevent thermal expansion deformation, it is recommended to break and start a new row'
     ],
+    adminBtn: '⚙ Admin',
     toastSwitch: 'Please clear all scenarios before switching mounting system brand',
     panelSizeLabel: 'Panel Size',
     orientPortrait: 'Portrait',
@@ -660,6 +661,7 @@ function setLang(l) {
   updateFormulaDisplay(currentBrand);
   updateResultCardsVisibility(currentBrand);
   buildPanelSelector();
+  const ab = document.getElementById('adminBtn'); if(ab) ab.textContent = T[l].adminBtn;
   const rl = document.getElementById('pvstarRoundupBtnLabel'); if(rl) rl.textContent = lang==='zh' ? '计算销售包装数量' : 'Round Up Sales Units';
 }
 
