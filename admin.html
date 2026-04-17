@@ -184,7 +184,7 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
     </div>
     <div class="field-row">
       <div class="field"><label>Name (EN)</label><input id="pkg-nameEn" placeholder="e.g. Rail Pack"></div>
-      <div class="field"><label id="pkg-packSize-label">包装数量 Pack Size</label><input id="pkg-packSize" type="number" min="1" step="1" placeholder="例：4"></div>
+      
     </div>
     <div class="field-row">
       <div class="field"><label id="pkg-weight-label">重量 Weight (kg/pack)</label><input id="pkg-weight" type="number" min="0" step="0.001" placeholder="0.000"></div>
@@ -192,17 +192,7 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
     </div>
     <div class="field-row">
       <div class="field"><label id="pkg-price-label">价格 Price (€/pack)</label><input id="pkg-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
-      <div class="field">
-        <label id="pkg-calc-label">计算来源 Calc From</label>
-        <select id="pkg-calcFrom">
-          <option value="rails" data-i18n-val="rails">rails（导轨数量）</option>
-          <option value="hooks" data-i18n-val="hooks">hooks（挂钩数量）</option>
-          <option value="endClamps" data-i18n-val="endClamps">endClamps（边压块数量）</option>
-          <option value="midClamps" data-i18n-val="midClamps">midClamps（中压块数量）</option>
-          <option value="railConnectors" data-i18n-val="railConnectors">railConnectors（连接件数量）</option>
-          <option value="leftEndCaps" data-i18n-val="leftEndCaps">leftEndCaps（端盖对数）</option>
-        </select>
-      </div>
+      <div class="field" style="display:none;"><label id="pkg-calc-label">Calc From</label><select id="pkg-calcFrom" style="width:100%;padding:8px 10px;border:1px solid #ddd;font-size:13px;"><option value="rails">rails</option><option value="hooks">hooks</option><option value="endClamps">endClamps</option><option value="midClamps">midClamps</option><option value="railConnectors">railConnectors</option><option value="leftEndCaps">leftEndCaps</option></select></div>
     </div>
     <div class="field-row">
       <div class="field"><label id="pkg-brand-label">品牌 Brand</label>
@@ -241,6 +231,28 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
 </div>
 
 <script>
+
+
+// ── Accessory ID → calcFrom mapping (primary accessory detection) ──
+const ACC_TO_CALCFROM = {
+  acc_rail:      'rails',
+  acc_hook:      'hooks',
+  acc_end_clamp: 'endClamps',
+  acc_mid_clamp: 'midClamps',
+  acc_rail_conn: 'railConnectors',
+  acc_rail_cap:  'leftEndCaps',
+};
+
+// Returns {calcFrom, packSize} derived from package contents
+function derivePackMeta(contents) {
+  for (var i = 0; i < contents.length; i++) {
+    var cf = ACC_TO_CALCFROM[contents[i].accessoryId];
+    if (cf) return { calcFrom: cf, packSize: contents[i].qty || 1 };
+  }
+  // fallback: use first content item
+  if (contents.length > 0) return { calcFrom: '', packSize: contents[0].qty || 1 };
+  return { calcFrom: '', packSize: 1 };
+}
 
 let adminLang = (function(){ try{return localStorage.getItem('pvstar_lang')||'zh';}catch(e){return 'zh';} })();
 
@@ -330,7 +342,7 @@ function setAdminLang(l) {
     'acc-brand-label':T.labelBrand, 'acc-desc-label':T.labelDesc,
     'acc-img-label':T.labelImages, 'acc-attach-label':T.labelAttach,
     'pkg-sku-label':T.labelSku, 'pkg-nameZh-label':T.labelNameZh,
-    'pkg-packSize-label':T.labelPackSize, 'pkg-weight-label':T.labelWeight2,
+    'pkg-weight-label':T.labelWeight2,
     'pkg-dim-label':T.labelDimensions, 'pkg-price-label':T.labelPrice2,
     'pkg-calc-label':T.labelCalcFrom, 'pkg-brand-label':T.labelBrand,
     'pkg-desc-label':T.labelPkgDesc, 'pkg-img-label':T.labelImages,
@@ -377,7 +389,7 @@ function setAdminLang(l) {
     en:{ rails:'rails (rail count)',hooks:'hooks (hook count)',endClamps:'endClamps (end clamp count)',
          midClamps:'midClamps (mid clamp count)',railConnectors:'railConnectors (connector count)',leftEndCaps:'leftEndCaps (end cap pairs)'}
   };
-  var cf=document.getElementById('pkg-calcFrom');
+  var cf=document.getElementById("pkg-calcFrom");
   if(cf) Array.from(cf.options).forEach(function(opt){
     if(cfLabels[l][opt.value]) opt.textContent=cfLabels[l][opt.value];
   });
@@ -614,13 +626,13 @@ async function openPkgModal(id){
     document.getElementById('pkg-sku').value=p?(p.sku||''):'';
     document.getElementById('pkg-nameZh').value=p?(p.nameZh||''):'';
     document.getElementById('pkg-nameEn').value=p?(p.nameEn||''):'';
-    document.getElementById('pkg-packSize').value=p?(p.packSize||''):'';
+    // packSize auto-derived from contents — no manual field
     document.getElementById('pkg-weight').value=p?(p.weight||''):'';
     (function(){var _d=p&&p.dimensions?p.dimensions.split(/[×x×]/i):[];document.getElementById('pkg-dim-l').value=_d[0]||'';document.getElementById('pkg-dim-w').value=_d[1]||'';document.getElementById('pkg-dim-h').value=_d[2]||'';})();
     document.getElementById('pkg-price').value=p?(p.price||''):'';
     document.getElementById('pkg-desc').value=p?(p.description||''):'';
     document.getElementById('pkg-brand').value=p?(p.brand||''):'';
-    document.getElementById('pkg-calcFrom').value=p?(p.calcFrom||'rails'):'rails';
+    document.getElementById("pkg-calcFrom").value=p?(p.calcFrom||'rails'):'rails';
     _pkgImgs=p&&p.images?[...p.images]:[];
     _pkgContents=p&&p.contents?p.contents.map(function(c){return Object.assign({},c);}):[];
     renderPkgImgs();renderContentsEditor(db);
@@ -641,7 +653,7 @@ function renderContentsEditor(db){
   var accOpts=db?db.accessories:[];
   el.innerHTML=_pkgContents.map(function(c,i){
     var opts=accOpts.map(function(a){return '<option value="'+a.id+'"'+(a.id===c.accessoryId?' selected':'')+'>'+a.nameZh+' / '+a.nameEn+'</option>';}).join('');
-    return '<div class="content-row"><select onchange="_pkgContents['+i+'].accessoryId=this.value" style="flex:1;padding:4px 6px;border:1px solid #ddd;font-size:12px;font-family:inherit;">'+opts+'</select><span style="font-size:12px;color:#666;white-space:nowrap;">× 数量</span><input type="number" class="qty-inp" min="1" value="'+(c.qty||1)+'" oninput="_pkgContents['+i+'].qty=Number(this.value)||1"><button class="btn-icon" onclick="removeContentRow('+i+')">x</button></div>';
+    return '<div class="content-row"><select onchange="_pkgContents['+i+'].accessoryId=this.value;(function(){var _m=derivePackMeta(_pkgContents);var cf=document.getElementById("pkg-calcFrom");if(cf&&_m.calcFrom)cf.value=_m.calcFrom;})()" style="flex:1;padding:4px 6px;border:1px solid #ddd;font-size:12px;font-family:inherit;">'+opts+'</select><span style="font-size:12px;color:#666;white-space:nowrap;">× 数量</span><input type="number" class="qty-inp" min="1" value="'+(c.qty||1)+'" oninput="_pkgContents['+i+'].qty=Number(this.value)||1"><button class="btn-icon" onclick="removeContentRow('+i+')">x</button></div>';
   }).join('');
 }
 async function addContentRow(){var db=await loadDB();var fa=db.accessories[0];_pkgContents.push({accessoryId:fa?fa.id:'',qty:1});renderContentsEditor(db);}
@@ -651,7 +663,8 @@ async function savePkg(){
   var db=await loadDB();
   var nameZh=document.getElementById('pkg-nameZh').value.trim();
   if(!nameZh){showToast(ADMIN_T[adminLang].errNameZh,1);return;}
-  var data={id:_ePkgId||('pkg_'+uid()),sku:document.getElementById('pkg-sku').value.trim(),nameZh:nameZh,nameEn:document.getElementById('pkg-nameEn').value.trim(),imgKey:'',images:_pkgImgs,weight:parseFloat(document.getElementById('pkg-weight').value)||0,dimensions:(function(){var _l=document.getElementById('pkg-dim-l').value.trim(),_w=document.getElementById('pkg-dim-w').value.trim(),_h=document.getElementById('pkg-dim-h').value.trim();return (_l||_w||_h)?_l+'×'+_w+'×'+_h:'';})(),price:parseFloat(document.getElementById('pkg-price').value)||0,description:document.getElementById('pkg-desc').value.trim(),brand:document.getElementById('pkg-brand').value,packSize:parseInt(document.getElementById('pkg-packSize').value)||1,calcFrom:document.getElementById('pkg-calcFrom').value,contents:_pkgContents.filter(function(c){return c.accessoryId;})};
+  var _pkgMeta=derivePackMeta(_pkgContents);
+  var data={id:_ePkgId||('pkg_'+uid()),sku:document.getElementById('pkg-sku').value.trim(),nameZh:nameZh,nameEn:document.getElementById('pkg-nameEn').value.trim(),imgKey:'',images:_pkgImgs,weight:parseFloat(document.getElementById('pkg-weight').value)||0,dimensions:(function(){var _l=document.getElementById('pkg-dim-l').value.trim(),_w=document.getElementById('pkg-dim-w').value.trim(),_h=document.getElementById('pkg-dim-h').value.trim();return (_l||_w||_h)?_l+'×'+_w+'×'+_h:'';})(),price:parseFloat(document.getElementById('pkg-price').value)||0,description:document.getElementById('pkg-desc').value.trim(),brand:document.getElementById('pkg-brand').value,packSize:_pkgMeta.packSize,calcFrom:_pkgMeta.calcFrom||document.getElementById("pkg-calcFrom").value,contents:_pkgContents.filter(function(c){return c.accessoryId;})};
   if(_ePkgId){var idx=db.packages.findIndex(function(p){return p.id===_ePkgId;});if(idx!==-1){data.imgKey=db.packages[idx].imgKey||'';db.packages[idx]=data;}}
   else db.packages.push(data);
   if(await saveDB(db)){showToast(_ePkgId?ADMIN_T[adminLang].toastPkgUpdated:ADMIN_T[adminLang].toastPkgSaved);closePkgModal();renderPkgList();}
