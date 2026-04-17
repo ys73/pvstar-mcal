@@ -1,0 +1,74 @@
+{
+  "_comment": "PVSTAR 配件数据库 - 可直接编辑此文件，然后在后台管理页面导入",
+  "accessories": [
+    { "id": "acc_rail",       "partNo": "", "nameZh": "导轨",       "nameEn": "Rail",           "imgKey": "p_rail",        "images": [], "weight": 0, "price": 0, "description": "", "attachments": [] },
+    { "id": "acc_hook",       "partNo": "", "nameZh": "挂钩",       "nameEn": "Hook",           "imgKey": "p_hook",        "images": [], "weight": 0, "price": 0, "description": "", "attachments": [] },
+    { "id": "acc_end_clamp",  "partNo": "", "nameZh": "边压块",     "nameEn": "End Clamp",      "imgKey": "p_end_clamp",   "images": [], "weight": 0, "price": 0, "description": "", "attachments": [] },
+    { "id": "acc_mid_clamp",  "partNo": "", "nameZh": "中压块",     "nameEn": "Mid Clamp",      "imgKey": "p_inter_clamp", "images": [], "weight": 0, "price": 0, "description": "", "attachments": [] },
+    { "id": "acc_rail_conn",  "partNo": "", "nameZh": "导轨连接件", "nameEn": "Rail Connector", "imgKey": "p_rail_conn",   "images": [], "weight": 0, "price": 0, "description": "", "attachments": [] },
+    { "id": "acc_rail_cap",   "partNo": "", "nameZh": "导轨端盖",   "nameEn": "Rail End Cap",   "imgKey": "p_rail_cap",    "images": [], "weight": 0, "price": 0, "description": "", "attachments": [] },
+    { "id": "acc_washer",     "partNo": "", "nameZh": "穿刺垫片",   "nameEn": "Grounding Clip", "imgKey": "pp_washer",     "images": [], "weight": 0, "price": 0, "description": "", "attachments": [] },
+    { "id": "acc_cable_clip", "partNo": "", "nameZh": "线夹",       "nameEn": "Cable Clip",     "imgKey": "pp_cable_clip", "images": [], "weight": 0, "price": 0, "description": "", "attachments": [] },
+    { "id": "acc_grnd_lug",   "partNo": "", "nameZh": "接地块",     "nameEn": "Grounding Lug",  "imgKey": "pp_grnd_lug",   "images": [], "weight": 0, "price": 0, "description": "", "attachments": [] }
+  ],
+  "packages": [
+    {
+      "id": "pkg_rail",      "sku": "8061010000018",
+      "nameZh": "导轨包",   "nameEn": "Rail Pack",
+      "imgKey": "pp_rail",  "images": [],
+      "weight": 0, "dimensions": "", "price": 0, "description": "",
+      "packSize": 4,  "calcFrom": "rails",
+      "contents": [{ "accessoryId": "acc_rail", "qty": 4 }]
+    },
+    {
+      "id": "pkg_hook",      "sku": "8061020000007",
+      "nameZh": "挂钩包",   "nameEn": "Hook Pack",
+      "imgKey": "pp_hook",  "images": [],
+      "weight": 0, "dimensions": "", "price": 0, "description": "",
+      "packSize": 20, "calcFrom": "hooks",
+      "contents": [{ "accessoryId": "acc_hook", "qty": 20 }]
+    },
+    {
+      "id": "pkg_end_clamp", "sku": "8061030000013",
+      "nameZh": "边压块包", "nameEn": "End Clamp Pack",
+      "imgKey": "pp_end_clamp", "images": [],
+      "weight": 0, "dimensions": "", "price": 0, "description": "",
+      "packSize": 20, "calcFrom": "endClamps",
+      "contents": [
+        { "accessoryId": "acc_end_clamp", "qty": 20 },
+        { "accessoryId": "acc_washer",    "qty": 20 }
+      ]
+    },
+    {
+      "id": "pkg_mid_clamp", "sku": "8061040000013",
+      "nameZh": "中压块包", "nameEn": "Mid Clamp Pack",
+      "imgKey": "pp_mid_clamp", "images": [],
+      "weight": 0, "dimensions": "", "price": 0, "description": "",
+      "packSize": 20, "calcFrom": "midClamps",
+      "contents": [
+        { "accessoryId": "acc_mid_clamp",  "qty": 20 },
+        { "accessoryId": "acc_washer",     "qty": 20 },
+        { "accessoryId": "acc_cable_clip", "qty": 20 }
+      ]
+    },
+    {
+      "id": "pkg_connector", "sku": "8061050000017",
+      "nameZh": "连接件包", "nameEn": "Connector Pack",
+      "imgKey": "pp_connector", "images": [],
+      "weight": 0, "dimensions": "", "price": 0, "description": "",
+      "packSize": 10, "calcFrom": "railConnectors",
+      "contents": [{ "accessoryId": "acc_rail_conn", "qty": 10 }]
+    },
+    {
+      "id": "pkg_accessory", "sku": "8061080000008",
+      "nameZh": "配件包",   "nameEn": "Accessory Pack",
+      "imgKey": "pp_accessory", "images": [],
+      "weight": 0, "dimensions": "", "price": 0, "description": "",
+      "packSize": 10, "calcFrom": "leftEndCaps",
+      "contents": [
+        { "accessoryId": "acc_rail_cap", "qty": 10 },
+        { "accessoryId": "acc_grnd_lug", "qty": 6  }
+      ]
+    }
+  ]
+}

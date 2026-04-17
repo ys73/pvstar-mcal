@@ -187,10 +187,22 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#000;overflow-x:hidden
 .card-img-wrap:hover img { opacity: 0.85; transition: opacity 0.2s; }
 #lightbox { display: none; }
 #lightbox.open { display: flex !important; animation: fadeIn 0.2s ease; }
+#adminBtn{position:fixed;bottom:24px;right:24px;z-index:9000;padding:8px 16px;background:#000;color:#fff;border:none;font-size:12px;font-family:"Inter",sans-serif;cursor:pointer;letter-spacing:.05em;transition:opacity .2s;}
+#adminBtn:hover{opacity:.75;}
+.quote-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.quote-tbl th{text-align:left;padding:8px 6px;border-bottom:2px solid #000;font-weight:500;white-space:nowrap;}
+.quote-tbl td{padding:7px 6px;border-bottom:1px solid #e5e5e5;vertical-align:middle;}
+.quote-tbl tfoot td{font-weight:600;border-top:2px solid #000;border-bottom:none;padding-top:10px;}
+.disc-input{width:52px;padding:3px 6px;border:1px solid #ccc;font-size:12px;text-align:center;font-family:"Inter",sans-serif;}
+.disc-input:focus{outline:none;border-color:#000;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <div id="toast"></div>
+<button id="adminBtn" onclick="window.open('admin.html','_blank')">&#9881; 后台管理</button>
 
 <!-- ── Screen 1: Hero ── -->
 <section id="screen1">
@@ -255,9 +267,6 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#000;overflow-x:hidden
       <div class="brand-tab active" data-brand="clenergy">Clenergy</div>
       <div class="brand-tab" data-brand="kseng">Kseng</div>
       <div class="brand-tab" data-brand="pvstar">PVSTAR</div>
-      <div style="margin-left:auto;display:flex;align-items:center;">
-        <a id="adminLink" href="pvstar_admin.html" target="_blank" style="display:none;padding:6px 14px;font-size:11px;border:1px solid #999;color:#666;text-decoration:none;transition:.2s;" onmouseover="this.style.background='#111';this.style.color='#fff'" onmouseout="this.style.background='';this.style.color='#666'">⚙ 数据维护</a>
-      </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -651,16 +660,6 @@ function setLang(l) {
   updateResultCardsVisibility(currentBrand);
   buildPanelSelector();
   const rl = document.getElementById('pvstarRoundupBtnLabel'); if(rl) rl.textContent = lang==='zh' ? '计算销售包装数量' : 'Round Up Sales Units';
-  const gl = document.getElementById('genQuoteBtnLabel'); if(gl) gl.textContent = lang==='zh'?'生成报价单':'Generate Quote';
-  const sb = document.getElementById('quoteStaleBannerMsg');
-  if(sb && sb.parentElement.style.display==='flex') {
-    sb.textContent = lang==='zh' ? '⚠ 配件包数量已修改，报价单数据已过期' : '⚠ Pack quantities have changed — quotation is outdated';
-  }
-  const ub = document.getElementById('updateQuoteBtn');
-  if(ub) ub.textContent = lang==='zh'?'更新报价单':'Update Quote';
-  const pdfLbl = document.getElementById('exportPDFLabel'); if(pdfLbl) pdfLbl.textContent = lang==='zh'?'导出 PDF':'Export PDF';
-  const xlsLbl = document.getElementById('exportExcelLabel'); if(xlsLbl) xlsLbl.textContent = lang==='zh'?'导出 Excel':'Export Excel';
-  const cl = document.getElementById('closeRoundupBtn'); if(cl) cl.textContent = lang==='zh'?'关闭':'Close';
 }
 
 // ════════════════════════════════════════════
@@ -716,8 +715,6 @@ function switchBrand(brand) {
   updateFormulaDisplay(brand);
   updateResultCardsVisibility(brand);
   updateCardImages(brand);
-  const al = document.getElementById('adminLink');
-  if (al) al.style.display = brand === 'pvstar' ? 'inline-block' : 'none';
 }
 
 function updateTabLockState() {
@@ -1032,7 +1029,7 @@ function selectOrientation(id) {
   buildPanelSelector();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('logoImg').src = LOGO_SRC;
   buildRadios();
   buildPanelSelector();
@@ -1041,6 +1038,8 @@ document.addEventListener('DOMContentLoaded', () => {
   updateResultCardsVisibility('clenergy');
   updateCardImages('clenergy');
   updateScenarioList();
+  // Load product DB from IndexedDB (async, updates cache for roundup modal)
+  initPvstarDB().catch(function(){});
 });
 
 // ════════════════════════════════════════════
@@ -1064,8 +1063,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbo
 // ════════════════════════════════════════════
 //  PVSTAR Round-up Modal
 // ════════════════════════════════════════════
-// ── Default pack definitions (fallback if no admin data) ──
-const PVSTAR_PACKS_DEFAULT = [
+const PVSTAR_PACKS = [
   {
     sku:    '8061010000018',
     nameZh: '导轨包',       nameEn: 'Rail Pack',
@@ -1122,92 +1120,103 @@ const PVSTAR_PACKS_DEFAULT = [
   }
 ];
 
-// ── Baked-in admin data (populated by admin export, overrides localStorage) ──
-let BAKED_ADMIN_DATA = null; // replaced by admin export tool
 
-// ── Load live pack data: baked-in → localStorage → defaults ──
-function loadPVSTARPacks() {
-  try {
-    // Priority: baked-in data > localStorage > defaults
-    let adminData = null;
-    if (BAKED_ADMIN_DATA) {
-      adminData = BAKED_ADMIN_DATA;
-    } else {
-      const raw = localStorage.getItem('pvstar_admin_data');
-      if (!raw) return JSON.parse(JSON.stringify(PVSTAR_PACKS_DEFAULT));
-      adminData = JSON.parse(raw);
-    }
-    const adminPacks = adminData.packs || [];
+// ════════════════════════════════════════════
+//  PVSTAR Database (localStorage backend)
+// ════════════════════════════════════════════
+const DEFAULT_PVSTAR_DB = {
+  accessories: [
+    { id:'acc_rail',       partNo:'', nameZh:'导轨',       nameEn:'Rail',           imgKey:'p_rail',        images:[], weight:0, price:0, description:'', attachments:[] },
+    { id:'acc_hook',       partNo:'', nameZh:'挂钩',       nameEn:'Hook',           imgKey:'p_hook',        images:[], weight:0, price:0, description:'', attachments:[] },
+    { id:'acc_end_clamp',  partNo:'', nameZh:'边压块',     nameEn:'End Clamp',      imgKey:'p_end_clamp',   images:[], weight:0, price:0, description:'', attachments:[] },
+    { id:'acc_mid_clamp',  partNo:'', nameZh:'中压块',     nameEn:'Mid Clamp',      imgKey:'p_inter_clamp', images:[], weight:0, price:0, description:'', attachments:[] },
+    { id:'acc_rail_conn',  partNo:'', nameZh:'导轨连接件', nameEn:'Rail Connector', imgKey:'p_rail_conn',   images:[], weight:0, price:0, description:'', attachments:[] },
+    { id:'acc_rail_cap',   partNo:'', nameZh:'导轨端盖',   nameEn:'Rail End Cap',   imgKey:'p_rail_cap',    images:[], weight:0, price:0, description:'', attachments:[] },
+    { id:'acc_washer',     partNo:'', nameZh:'穿刺垫片',   nameEn:'Grounding Clip', imgKey:'pp_washer',     images:[], weight:0, price:0, description:'', attachments:[] },
+    { id:'acc_cable_clip', partNo:'', nameZh:'线夹',       nameEn:'Cable Clip',     imgKey:'pp_cable_clip', images:[], weight:0, price:0, description:'', attachments:[] },
+    { id:'acc_grnd_lug',   partNo:'', nameZh:'接地块',     nameEn:'Grounding Lug',  imgKey:'pp_grnd_lug',   images:[], weight:0, price:0, description:'', attachments:[] },
+  ],
+  packages: [
+    { id:'pkg_rail',      sku:'8061010000018', nameZh:'导轨包',   nameEn:'Rail Pack',      imgKey:'pp_rail',      images:[], weight:0, dimensions:'', price:0, description:'', packSize:4,  calcFrom:'rails',         contents:[{accessoryId:'acc_rail',      qty:4}] },
+    { id:'pkg_hook',      sku:'8061020000007', nameZh:'挂钩包',   nameEn:'Hook Pack',      imgKey:'pp_hook',      images:[], weight:0, dimensions:'', price:0, description:'', packSize:20, calcFrom:'hooks',         contents:[{accessoryId:'acc_hook',      qty:20}] },
+    { id:'pkg_end_clamp', sku:'8061030000013', nameZh:'边压块包', nameEn:'End Clamp Pack', imgKey:'pp_end_clamp', images:[], weight:0, dimensions:'', price:0, description:'', packSize:20, calcFrom:'endClamps',     contents:[{accessoryId:'acc_end_clamp', qty:20},{accessoryId:'acc_washer',    qty:20}] },
+    { id:'pkg_mid_clamp', sku:'8061040000013', nameZh:'中压块包', nameEn:'Mid Clamp Pack', imgKey:'pp_mid_clamp', images:[], weight:0, dimensions:'', price:0, description:'', packSize:20, calcFrom:'midClamps',     contents:[{accessoryId:'acc_mid_clamp', qty:20},{accessoryId:'acc_washer',    qty:20},{accessoryId:'acc_cable_clip',qty:20}] },
+    { id:'pkg_connector', sku:'8061050000017', nameZh:'连接件包', nameEn:'Connector Pack', imgKey:'pp_connector', images:[], weight:0, dimensions:'', price:0, description:'', packSize:10, calcFrom:'railConnectors',contents:[{accessoryId:'acc_rail_conn', qty:10}] },
+    { id:'pkg_accessory', sku:'8061080000008', nameZh:'配件包',   nameEn:'Accessory Pack', imgKey:'pp_accessory', images:[], weight:0, dimensions:'', price:0, description:'', packSize:10, calcFrom:'leftEndCaps',   contents:[{accessoryId:'acc_rail_cap',  qty:10},{accessoryId:'acc_grnd_lug',   qty:6}] },
+  ]
+};
 
-    // partId → component key mapping
-    const partIdToKey = {
-      'p_rail':        'rails',
-      'p_hook':        'hooks',
-      'p_end_clamp':   'endClamps',
-      'p_inter_clamp': 'midClamps',
-      'p_rail_conn':   'railConnectors',
-      'p_rail_cap':    'leftEndCaps',
+// IndexedDB helpers (shared with admin.html)
+const _IDB_NAME  = 'pvstar_app';
+const _IDB_VER   = 1;
+const _IDB_STORE = 'pvstar_data';
+const _IDB_KEY   = 'main';
+let _idbConn = null, _pvstarDBCache = null;
+
+function _openIDB() {
+  if (_idbConn) return Promise.resolve(_idbConn);
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open(_IDB_NAME, _IDB_VER);
+    req.onupgradeneeded = function(e) {
+      var db = e.target.result;
+      if (!db.objectStoreNames.contains(_IDB_STORE)) db.createObjectStore(_IDB_STORE);
     };
-
-    // Keys that are "bundled" inside packs but not tracked as individual parts in admin
-    // (washer comes from end_clamp & mid_clamp packs; cableClip from mid_clamp)
-    // We derive these ratios from the default definitions
-    const bundledRatios = {}; // sku -> { washer: N, cableClips: M }
-    PVSTAR_PACKS_DEFAULT.forEach(def => {
-      const extras = {};
-      if (def.contents.washers)    extras.washers    = def.contents.washers;
-      if (def.contents.cableClips) extras.cableClips = def.contents.cableClips;
-      if (Object.keys(extras).length) bundledRatios[def.sku] = extras;
-    });
-
-    return PVSTAR_PACKS_DEFAULT.map(def => {
-      const adminPack = adminPacks.find(p => p.sku === def.sku);
-      if (!adminPack) return def;
-
-      // ── packSize: read from calcFrom-matching content item qty ──
-      let packSize = def.packSize;
-      const calcKey = def.calcFrom; // e.g. 'hooks'
-      const primaryPartId = Object.keys(partIdToKey).find(k => partIdToKey[k] === calcKey);
-      const primaryContent = (adminPack.contents || []).find(c => c.partId === primaryPartId);
-      if (primaryContent && primaryContent.qty > 0) packSize = primaryContent.qty;
-
-      // ── contents: rebuild from admin parts ──
-      const contentsMap = {};
-      (adminPack.contents || []).forEach(c => {
-        const key = partIdToKey[c.partId];
-        if (key && c.qty > 0) contentsMap[key] = c.qty;
-      });
-
-      // Preserve bundled items (washers, cableClips, lightningClips) scaled to new packSize
-      const defPrimaryQty = def.contents[def.calcFrom] || def.packSize;
-      const scale = defPrimaryQty > 0 ? packSize / defPrimaryQty : 1;
-      if (bundledRatios[def.sku]) {
-        Object.entries(bundledRatios[def.sku]).forEach(([k, v]) => {
-          contentsMap[k] = Math.round(v * scale);
-        });
-      }
-      if (def.sku === '8061080000008') contentsMap.lightningClips = 6; // always 6 per pack
-
-      // ── image: use admin customImg if available ──
-      const customImg = adminPack.customImg || null;
-
-      return {
-        ...def,
-        nameZh:    adminPack.nameZh   || def.nameZh,
-        nameEn:    adminPack.nameEn   || def.nameEn,
-        packSize:  packSize,
-        contents:  Object.keys(contentsMap).length > 0 ? contentsMap : def.contents,
-        customImg: customImg,
-      };
-    });
-  } catch(e) {
-    console.warn('Could not load admin pack data, using defaults:', e);
-    return JSON.parse(JSON.stringify(PVSTAR_PACKS_DEFAULT));
-  }
+    req.onsuccess = function(e) { _idbConn = e.target.result; resolve(_idbConn); };
+    req.onerror   = function(e) { reject(e.target.error); };
+  });
 }
 
-// ── Active packs: reloaded each time modal opens ──
-let PVSTAR_PACKS = loadPVSTARPacks();
+function _loadIDB() {
+  return _openIDB().then(function(idb) {
+    return new Promise(function(resolve) {
+      var req = idb.transaction(_IDB_STORE,'readonly').objectStore(_IDB_STORE).get(_IDB_KEY);
+      req.onsuccess = function(e) {
+        var d = e.target.result;
+        resolve(d && d.packages && d.packages.length > 0 ? d : JSON.parse(JSON.stringify(DEFAULT_PVSTAR_DB)));
+      };
+      req.onerror = function() { resolve(JSON.parse(JSON.stringify(DEFAULT_PVSTAR_DB))); };
+    });
+  }).catch(function() { return JSON.parse(JSON.stringify(DEFAULT_PVSTAR_DB)); });
+}
+
+// Sync accessor — returns cached DB (loaded async at init)
+function getPvstarDB() {
+  return _pvstarDBCache || JSON.parse(JSON.stringify(DEFAULT_PVSTAR_DB));
+}
+
+// Call once at DOMContentLoaded
+function initPvstarDB() {
+  // Migrate legacy localStorage if present
+  try {
+    var raw = localStorage.getItem('pvstar_db');
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && parsed.packages && parsed.packages.length > 0) {
+        _openIDB().then(function(idb) {
+          var req = idb.transaction(_IDB_STORE,'readwrite').objectStore(_IDB_STORE).put(parsed, _IDB_KEY);
+          req.onsuccess = function() { localStorage.removeItem('pvstar_db'); };
+        }).catch(function(){});
+      }
+    }
+  } catch(e) {}
+  return _loadIDB().then(function(db) { _pvstarDBCache = db; });
+}
+
+// Merge DB image/price data into a PVSTAR_PACKS-compatible list
+function getEffectivePacks() {
+  const db = getPvstarDB();
+  return PVSTAR_PACKS.map(p => {
+    const dbPkg = db.packages.find(d => d.sku === p.sku);
+    return Object.assign({}, p, {
+      images:      dbPkg && dbPkg.images      ? dbPkg.images      : [],
+      price:       dbPkg && dbPkg.price       ? dbPkg.price       : 0,
+      weight:      dbPkg && dbPkg.weight      ? dbPkg.weight      : 0,
+      dimensions:  dbPkg && dbPkg.dimensions  ? dbPkg.dimensions  : '',
+      description: dbPkg && dbPkg.description ? dbPkg.description : ''
+    });
+  });
+}
+
 
 // Rounded quantity display items (after pack calculation)
 const ROUNDUP_QTY_ITEMS = [
@@ -1223,49 +1232,113 @@ const ROUNDUP_QTY_ITEMS = [
 ];
 
 let _lastTotForRoundup = null;
-let _manualAdjust = {}; // sku -> delta
+
+let _packAdjustments = {};   // { sku: delta }
+let _currentPackCounts = {}; // { sku: finalCount }
+let _currentRounded = {};    // rounded accessory quantities
 
 function openRoundupModal() {
   if (!_lastTotForRoundup) return;
-  PVSTAR_PACKS = loadPVSTARPacks(); // reload from admin data
-  _manualAdjust = {}; // reset adjustments on open
-  _quoteData = [];
-  const qs = document.getElementById('quoteSection'); if(qs) qs.style.display='none';
-  const gqb = document.getElementById('genQuoteBtn'); if(gqb) gqb.style.display='';
-  const _epdf=document.getElementById('exportPDFBtn'); if(_epdf) _epdf.style.display='none';
-  const _exls=document.getElementById('exportExcelBtn'); if(_exls) _exls.style.display='none';
-  const t = T[lang];
-  const isZh = lang === 'zh';
+  _packAdjustments = {};
+  renderRoundupModal();
+}
 
-  // Update labels
-  document.getElementById('roundupTitle').textContent    = isZh ? '销售包装数量' : 'Sales Pack Quantities';
-  document.getElementById('roundupSubtitle').textContent = isZh ? '基于计算结果向上取整至整包' : 'Rounded up to full packs based on calculated quantities';
-  document.getElementById('roundupPackTitle').textContent = isZh ? '包装清单' : 'Pack Summary';
-  document.getElementById('roundupQtyTitle').textContent  = isZh ? '取整后配件数量' : 'Rounded-up Component Quantities';
+function renderRoundupModal() {
+  const packs  = getEffectivePacks();
+  const db     = getPvstarDB();
+  const isZh   = lang === 'zh';
+  const tot    = _lastTotForRoundup;
 
-  const tot = _lastTotForRoundup;
+  document.getElementById('roundupTitle').textContent     = isZh ? '销售包装数量'           : 'Sales Pack Quantities';
+  document.getElementById('roundupSubtitle').textContent  = isZh ? '基于计算结果向上取整至整包，可手动调整数量' : 'Rounded up to full packs — adjust manually if needed';
+  document.getElementById('roundupPackTitle').textContent = isZh ? '包装清单'               : 'Pack Summary';
+  document.getElementById('roundupQtyTitle').textContent  = isZh ? '取整后配件数量'         : 'Rounded-up Component Quantities';
 
-  // ── Compute pack counts ──
-  const packCounts = {};
-  PVSTAR_PACKS.forEach(p => {
-    packCounts[p.sku] = Math.ceil((tot[p.calcFrom] || 0) / p.packSize);
+  // Compute pack counts
+  packs.forEach(p => {
+    const base = Math.ceil((tot[p.calcFrom] || 0) / p.packSize);
+    _currentPackCounts[p.sku] = Math.max(0, base + (_packAdjustments[p.sku] || 0));
   });
 
-  // ── Compute rounded totals from packs ──
-  const rounded = { rails:0, hooks:0, endClamps:0, midClamps:0, railConnectors:0, washers:0, cableClips:0, leftEndCaps:0, lightningClips:0 };
-  PVSTAR_PACKS.forEach(p => {
-    const n = packCounts[p.sku];
-    Object.keys(p.contents).forEach(k => { rounded[k] = (rounded[k]||0) + n * p.contents[k]; });
-  });
+  // Compute rounded totals from pack contents
+  _currentRounded = computeRoundedTotals(packs, _currentPackCounts);
 
-  // ── Render pack grid ──
-  renderRoundupPacks(packCounts);
+  // Render pack grid
+  const packGrid = document.getElementById('roundupPackGrid');
+  packGrid.innerHTML = packs.map(p => {
+    const count  = _currentPackCounts[p.sku];
+    const name   = isZh ? p.nameZh : p.nameEn;
+    const unit   = isZh ? p.unitZh : p.unitEn;
+    const imgSrc = (p.images && p.images.length > 0) ? p.images[0] : (IMAGES[p.imgKey] || '');
+    const priceTxt = p.price > 0 ? `€${p.price.toFixed(2)}/pack` : '';
+    return `<div style="border:1px solid #e5e5e5;padding:12px;text-align:center;">
+      <div style="font-size:10px;color:#999;margin-bottom:4px;">${p.sku}</div>
+      ${imgSrc
+        ? `<img src="${imgSrc}" style="width:100px;height:80px;object-fit:contain;display:block;margin:0 auto 8px;cursor:zoom-in;" onclick="openLightbox('${imgSrc}','${name.replace(/'/g,String.fromCharCode(39))}')">`
+        : '<div style="width:100px;height:80px;margin:0 auto 8px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;"><svg width=32 height=32 fill=none stroke=#ccc stroke-width=1.5 viewBox="0 0 24 24"><rect x=3 y=3 width=18 height=18 rx=2/><path d="m9 9 6 6M15 9l-6 6"/></svg></div>'}
+      <div style="font-size:13px;font-weight:500;margin-bottom:2px;">${name}</div>
+      <div style="font-size:11px;color:#666;margin-bottom:4px;">${p.packSize} ${unit}</div>
+      ${priceTxt ? `<div style="font-size:11px;color:#888;margin-bottom:6px;">${priceTxt}</div>` : '<div style="margin-bottom:6px;height:14px;"></div>'}
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+        <button onclick="adjustPack('${p.sku}',-1)" style="width:26px;height:26px;border:1px solid #000;background:#fff;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;font-family:inherit;">−</button>
+        <span id="pack-count-${p.sku}" style="font-size:1.75rem;font-weight:300;min-width:2.5rem;text-align:center;">${count}</span>
+        <button onclick="adjustPack('${p.sku}',+1)" style="width:26px;height:26px;border:1px solid #000;background:#fff;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;font-family:inherit;">+</button>
+      </div>
+      <div style="font-size:11px;color:#666;margin-top:2px;">${isZh ? '包' : 'packs'}</div>
+    </div>`;
+  }).join('');
 
-  // ── Render rounded quantities grid ──
-  renderRoundupQty(packCounts);
+  // Render rounded qty grid
+  renderRoundedQtyGrid(db, _currentRounded);
 
   document.getElementById('roundupModal').style.display = 'block';
   document.body.style.overflow = 'hidden';
+}
+
+function computeRoundedTotals(packs, packCounts) {
+  const r = { rails:0, hooks:0, endClamps:0, midClamps:0, railConnectors:0, washers:0, cableClips:0, leftEndCaps:0, lightningClips:0 };
+  packs.forEach(p => {
+    const n = packCounts[p.sku] || 0;
+    if (p.contents && typeof p.contents === 'object' && !Array.isArray(p.contents)) {
+      Object.keys(p.contents).forEach(k => { r[k] = (r[k]||0) + n * p.contents[k]; });
+    }
+  });
+  return r;
+}
+
+function renderRoundedQtyGrid(db, rounded) {
+  const isZh = lang === 'zh';
+  const qtyGrid = document.getElementById('roundupQtyGrid');
+  qtyGrid.innerHTML = ROUNDUP_QTY_ITEMS.map(item => {
+    const qty    = rounded[item.key] || 0;
+    const name   = isZh ? item.nameZh : item.nameEn;
+    const dbAcc  = db.accessories.find(a => a.imgKey === item.imgKey);
+    const imgSrc = (dbAcc && dbAcc.images && dbAcc.images.length > 0) ? dbAcc.images[0] : (IMAGES[item.imgKey] || '');
+    return `<div style="border:1px solid #e5e5e5;padding:10px;text-align:center;">
+      ${imgSrc ? `<img src="${imgSrc}" style="width:80px;height:60px;object-fit:contain;display:block;margin:0 auto 6px;">` : '<div style="height:60px;margin-bottom:6px;background:#f5f5f5;"></div>'}
+      <div style="font-size:12px;font-weight:500;margin-bottom:4px;">${name}</div>
+      <div id="rounded-qty-${item.key}" style="font-size:1.75rem;font-weight:300;line-height:1;">${qty}</div>
+    </div>`;
+  }).join('');
+}
+
+function adjustPack(sku, delta) {
+  _packAdjustments[sku] = (_packAdjustments[sku] || 0) + delta;
+  const packs = getEffectivePacks();
+  const tot   = _lastTotForRoundup;
+
+  packs.forEach(p => {
+    const base = Math.ceil((tot[p.calcFrom] || 0) / p.packSize);
+    _currentPackCounts[p.sku] = Math.max(0, base + (_packAdjustments[p.sku] || 0));
+    const el = document.getElementById(`pack-count-${p.sku}`);
+    if (el) el.textContent = _currentPackCounts[p.sku];
+  });
+
+  _currentRounded = computeRoundedTotals(packs, _currentPackCounts);
+  ROUNDUP_QTY_ITEMS.forEach(item => {
+    const el = document.getElementById(`rounded-qty-${item.key}`);
+    if (el) el.textContent = _currentRounded[item.key] || 0;
+  });
 }
 
 function closeRoundupModal() {
@@ -1273,457 +1346,7 @@ function closeRoundupModal() {
   document.body.style.overflow = '';
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRoundupModal(); });
 
-
-// ════════════════════════════════════════════
-//  Round-up: render helpers
-// ════════════════════════════════════════════
-function _getAdjustedCounts(baseCounts) {
-  const result = {};
-  PVSTAR_PACKS.forEach(p => {
-    result[p.sku] = Math.max(0, (baseCounts[p.sku] || 0) + (_manualAdjust[p.sku] || 0));
-  });
-  return result;
-}
-
-function renderRoundupPacks(baseCounts) {
-  const isZh = lang === 'zh';
-  const adjusted = _getAdjustedCounts(baseCounts);
-  const packGrid = document.getElementById('roundupPackGrid');
-  if (!packGrid) return;
-
-  packGrid.innerHTML = PVSTAR_PACKS.map(p => {
-    const base  = baseCounts[p.sku] || 0;
-    const delta = _manualAdjust[p.sku] || 0;
-    const count = adjusted[p.sku];
-    const name  = isZh ? p.nameZh : p.nameEn;
-    const unit  = isZh ? p.unitZh : p.unitEn;
-    const imgSrc = p.customImg || IMAGES[p.imgKey] || '';
-    const deltaLabel = delta !== 0
-      ? `<span style="font-size:10px;color:${delta>0?'#2e7d32':'#c62828'};margin-left:4px;">${delta>0?'+':''}${delta}</span>`
-      : '';
-    return `<div style="border:1px solid #e5e5e5;padding:12px;text-align:center;position:relative;">
-      <div style="font-size:10px;color:#999;margin-bottom:4px;">${p.sku}</div>
-      <img src="${imgSrc}" style="width:90px;height:70px;object-fit:contain;display:block;margin:0 auto 6px;">
-      <div style="font-size:12px;font-weight:500;margin-bottom:2px;">${name}</div>
-      <div style="font-size:10px;color:#888;margin-bottom:8px;">${p.packSize} ${unit}</div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:4px;">
-        <button onclick="adjustPack('${p.sku}',-1)"
-          style="width:26px;height:26px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:16px;line-height:1;border-radius:2px;display:flex;align-items:center;justify-content:center;"
-          onmouseover="this.style.background='#111';this.style.color='#fff'"
-          onmouseout="this.style.background='#fff';this.style.color='#000'">−</button>
-        <div style="min-width:32px;text-align:center;">
-          <span style="font-size:1.75rem;font-weight:300;line-height:1;">${count}</span>${deltaLabel}
-        </div>
-        <button onclick="adjustPack('${p.sku}',+1)"
-          style="width:26px;height:26px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:16px;line-height:1;border-radius:2px;display:flex;align-items:center;justify-content:center;"
-          onmouseover="this.style.background='#111';this.style.color='#fff'"
-          onmouseout="this.style.background='#fff';this.style.color='#000'">+</button>
-      </div>
-      <div style="font-size:10px;color:#aaa;">${isZh?'包':'packs'}${delta!==0?' ('+isZh?'计算值':'base'+': '+base+')':''}</div>
-    </div>`;
-  }).join('');
-}
-
-function renderRoundupQty(baseCounts) {
-  const isZh = lang === 'zh';
-  const adjusted = _getAdjustedCounts(baseCounts);
-
-  // Recompute rounded from adjusted pack counts
-  const rounded = { rails:0, hooks:0, endClamps:0, midClamps:0, railConnectors:0, washers:0, cableClips:0, leftEndCaps:0, lightningClips:0 };
-  PVSTAR_PACKS.forEach(p => {
-    const n = adjusted[p.sku];
-    Object.keys(p.contents).forEach(k => { rounded[k] = (rounded[k]||0) + n * p.contents[k]; });
-  });
-
-  const qtyGrid = document.getElementById('roundupQtyGrid');
-  if (!qtyGrid) return;
-  qtyGrid.innerHTML = ROUNDUP_QTY_ITEMS.map(item => {
-    const qty = rounded[item.key] || 0;
-    const name = isZh ? item.nameZh : item.nameEn;
-    const imgSrc = IMAGES[item.imgKey] || '';
-    return `<div style="border:1px solid #e5e5e5;padding:10px;text-align:center;">
-      <img src="${imgSrc}" style="width:80px;height:60px;object-fit:contain;display:block;margin:0 auto 6px;">
-      <div style="font-size:12px;font-weight:500;margin-bottom:4px;">${name}</div>
-      <div style="font-size:1.75rem;font-weight:300;line-height:1;">${qty}</div>
-    </div>`;
-  }).join('');
-}
-
-function adjustPack(sku, delta) {
-  // Compute base counts from _lastTotForRoundup
-  const baseCounts = {};
-  PVSTAR_PACKS.forEach(p => {
-    baseCounts[p.sku] = Math.ceil((_lastTotForRoundup[p.calcFrom] || 0) / p.packSize);
-  });
-  // Clamp: can't go below 0
-  const currentAdjusted = (_manualAdjust[sku] || 0) + delta;
-  const base = baseCounts[sku] || 0;
-  if (base + currentAdjusted < 0) return;
-  _manualAdjust[sku] = currentAdjusted;
-  renderRoundupPacks(baseCounts);
-  renderRoundupQty(baseCounts);
-  // If quote already shown, mark as stale
-  const qs = document.getElementById('quoteSection');
-  if (qs && qs.style.display !== 'none') {
-    markQuoteStale();
-  }
-}
-
-
-// ════════════════════════════════════════════
-//  Quotation Generator
-// ════════════════════════════════════════════
-let _quoteData = []; // [{pack, packCount, unitPrice, weight, discount}]
-let _quoteTotalPanels = 0;
-
-function generateQuote() {
-  clearQuoteStale();
-  // Read admin data for prices & weights
-  let adminPacks = [];
-  try {
-    const raw = localStorage.getItem('pvstar_admin_data');
-    if (raw) adminPacks = (JSON.parse(raw).packs || []);
-  } catch(e) {}
-
-  // Compute adjusted pack counts
-  const baseCounts = {};
-  PVSTAR_PACKS.forEach(p => {
-    baseCounts[p.sku] = Math.ceil((_lastTotForRoundup[p.calcFrom] || 0) / p.packSize);
-  });
-  const adjusted = _getAdjustedCounts(baseCounts);
-
-  // Count total panels from scenarios
-  _quoteTotalPanels = 0;
-  scenarios.forEach(s => { _quoteTotalPanels += s.panelCount; });
-
-  _quoteData = PVSTAR_PACKS.map(p => {
-    const packCount = adjusted[p.sku] || 0;
-    const adminPack = adminPacks.find(ap => ap.sku === p.sku) || {};
-    const unitPrice = parseFloat(adminPack.price) || 0;
-    const weight    = parseFloat(adminPack.weight) || 0;
-    const imgSrc    = adminPack.customImg || IMAGES[p.imgKey] || '';
-    return { pack: p, packCount, unitPrice, weight, imgSrc, discount: 0 };
-  }).filter(r => r.packCount > 0);
-
-  document.getElementById('quoteSection').style.display = 'block';
-  document.getElementById('genQuoteBtn').style.display = 'none';
-  const epdf = document.getElementById('exportPDFBtn'); if(epdf) epdf.style.display='';
-  const exls = document.getElementById('exportExcelBtn'); if(exls) exls.style.display='';
-  renderQuoteTable();
-}
-
-function renderQuoteTable(onlyTotals = false) {
-  const isZh = lang === 'zh';
-  const projDiscount = parseInt(document.getElementById('projectDiscount').value) || 0;
-
-  const thStyle = 'padding:10px 8px;background:#111;color:#fff;text-align:left;font-size:11px;font-weight:600;letter-spacing:.5px;white-space:nowrap;';
-  const tdStyle = 'padding:9px 8px;border-bottom:1px solid #eee;vertical-align:middle;';
-  const tdStyleR = 'padding:9px 8px;border-bottom:1px solid #eee;vertical-align:middle;text-align:right;';
-
-  // ── Always read current discount values from DOM into _quoteData ──
-  _quoteData.forEach((r, i) => {
-    const el = document.getElementById(`disc-${i}`);
-    if (el) r.discount = parseInt(el.value) || 0;
-  });
-
-  // ── Compute totals ──
-  let subtotal = 0, totalWeight = 0;
-  _quoteData.forEach((r) => {
-    totalWeight += r.packCount * r.weight;
-    subtotal    += r.unitPrice * r.packCount * (1 - r.discount / 100);
-  });
-  const totalAfterProj = subtotal * (1 - projDiscount / 100);
-  const perPanel = _quoteTotalPanels > 0 ? totalAfterProj / _quoteTotalPanels : 0;
-  const totalWeightStr = totalWeight > 0 ? totalWeight.toFixed(1) + ' kg' : '—';
-
-  if (!onlyTotals) {
-    // ── Full render: headers + body rows (including inputs) ──
-    const headers = isZh
-      ? ['料号 / 名称','图片','数量','重量','销售单位','折扣率','单价 (€)','小计 (€)']
-      : ['ITEM DESCRIPTION','IMAGE','QUANTITY','WEIGHT','SALES UNIT','DISCOUNT RATE','UNIT PRICE','PRICE'];
-    document.getElementById('quoteHead').innerHTML =
-      `<tr>${headers.map(h => `<th style="${thStyle}">${h}</th>`).join('')}</tr>`;
-
-    const rows = _quoteData.map((r, i) => {
-      const p = r.pack;
-      const qty = r.packCount * p.packSize;
-      const rowWeight = r.packCount * r.weight;
-      const lineTotal = r.unitPrice * r.packCount * (1 - r.discount / 100);
-      const salesUnit = `${r.packCount} × (${p.packSize} ${isZh ? p.unitZh : p.unitEn})`;
-      const imgTag = r.imgSrc
-        ? `<img src="${r.imgSrc}" style="width:48px;height:40px;object-fit:contain;">`
-        : '—';
-      return `<tr>
-        <td style="${tdStyle}">
-          <div style="font-size:11px;color:#888;font-family:monospace;">${p.sku}</div>
-          <div style="font-weight:500;">${isZh ? p.nameZh : p.nameEn}</div>
-        </td>
-        <td style="${tdStyle}">${imgTag}</td>
-        <td style="${tdStyle}">${qty}</td>
-        <td style="${tdStyle}" id="wt-${i}">${rowWeight > 0 ? rowWeight.toFixed(1) + ' kg' : '—'}</td>
-        <td style="${tdStyle}">${salesUnit}</td>
-        <td style="${tdStyle}">
-          <div style="display:flex;align-items:center;gap:4px;">
-            <input id="disc-${i}" type="number" min="0" max="100" step="1" value="${r.discount}"
-              style="width:64px;padding:4px 6px;border:1px solid #ddd;font-size:12px;text-align:center;"
-              oninput="renderQuoteTable(true)">
-            <span style="font-size:11px;color:#888;">%</span>
-          </div>
-        </td>
-        <td style="${tdStyleR}">${r.unitPrice > 0 ? r.unitPrice.toFixed(3) : '—'}</td>
-        <td style="${tdStyleR}" id="lt-${i}">${r.unitPrice > 0 ? lineTotal.toFixed(3) : '—'}</td>
-      </tr>`;
-    }).join('');
-    document.getElementById('quoteBody').innerHTML = rows;
-  } else {
-    // ── Partial update: only refresh line totals and footer ──
-    _quoteData.forEach((r, i) => {
-      const lineTotal = r.unitPrice * r.packCount * (1 - r.discount / 100);
-      const ltEl = document.getElementById(`lt-${i}`);
-      if (ltEl) ltEl.textContent = r.unitPrice > 0 ? lineTotal.toFixed(3) : '—';
-    });
-  }
-
-  // ── Render footer (always) ──
-  const footTdStyle = 'padding:9px 8px;border-top:1px solid #ccc;';
-  const footTdR     = 'padding:9px 8px;border-top:1px solid #ccc;text-align:right;';
-  const footTdBold  = 'padding:9px 8px;border-top:2px solid #000;font-weight:600;';
-  const footTdBoldR = 'padding:9px 8px;border-top:2px solid #000;font-weight:600;text-align:right;';
-
-  document.getElementById('quoteFoot').innerHTML = `
-    <tr>
-      <td style="${footTdStyle};font-weight:600;">${isZh ? '合计' : 'Total'}</td>
-      <td style="${footTdStyle}"></td>
-      <td style="${footTdStyle}"></td>
-      <td style="${footTdStyle};font-weight:500;">${totalWeightStr}</td>
-      <td colspan="3" style="${footTdStyle}"></td>
-      <td style="${footTdR};font-weight:600;">${subtotal > 0 ? subtotal.toFixed(2) + ' €' : '—'}</td>
-    </tr>
-    <tr>
-      <td colspan="6" style="${footTdStyle}"></td>
-      <td style="${footTdStyle};font-weight:600;white-space:nowrap;">${isZh ? '小计' : 'Subtotal'}</td>
-      <td style="${footTdR}">${subtotal > 0 ? subtotal.toFixed(2) + ' €' : '—'}</td>
-    </tr>
-    <tr>
-      <td colspan="6" style="${footTdStyle}"></td>
-      <td style="${footTdStyle};font-weight:600;white-space:nowrap;">${isZh ? '项目折扣' : 'Project Discount'}</td>
-      <td style="${footTdR}">${projDiscount}%</td>
-    </tr>
-    <tr>
-      <td colspan="6" style="${footTdBold}"></td>
-      <td style="${footTdBold};white-space:nowrap;">${isZh ? '总价' : 'Total'}</td>
-      <td style="${footTdBoldR}">${totalAfterProj > 0 ? totalAfterProj.toFixed(2) + ' €' : '—'}</td>
-    </tr>
-    <tr>
-      <td colspan="6" style="${footTdStyle}"></td>
-      <td style="${footTdStyle};font-weight:600;white-space:nowrap;">€ / Panel</td>
-      <td style="${footTdR};font-weight:600;">${perPanel > 0 ? perPanel.toFixed(2) : '—'}</td>
-    </tr>`;
-}
-
-
-// ── Mark quote as stale when quantities change ──
-function markQuoteStale() {
-  const isZh = lang === 'zh';
-  const banner = document.getElementById('quoteStaleBanner');
-  const msg    = document.getElementById('quoteStaleBannerMsg');
-  const table  = document.getElementById('quoteTable');
-  const updateBtn = document.getElementById('updateQuoteBtn');
-
-  if (banner) {
-    banner.style.display = 'flex';
-    if (msg) msg.textContent = isZh
-      ? '⚠ 配件包数量已修改，报价单数据已过期'
-      : '⚠ Pack quantities have changed — quotation is outdated';
-    if (updateBtn) updateBtn.textContent = isZh ? '更新报价单' : 'Update Quote';
-  }
-  // Dim the table to signal it's outdated
-  if (table) table.style.opacity = '0.35';
-}
-
-function clearQuoteStale() {
-  const banner = document.getElementById('quoteStaleBanner');
-  const table  = document.getElementById('quoteTable');
-  if (banner) banner.style.display = 'none';
-  if (table)  table.style.opacity  = '1';
-}
-
-
-// ════════════════════════════════════════════
-//  Export: PDF (print-to-PDF via window.print)
-// ════════════════════════════════════════════
-function exportQuotePDF() {
-  const isZh = lang === 'zh';
-  const projDiscount = parseInt(document.getElementById('projectDiscount').value) || 0;
-
-  // Compute totals
-  let subtotal = 0, totalWeight = 0;
-  _quoteData.forEach(r => {
-    totalWeight += r.packCount * r.weight;
-    subtotal    += r.unitPrice * r.packCount * (1 - r.discount / 100);
-  });
-  const totalAfterProj = subtotal * (1 - projDiscount / 100);
-  const perPanel = _quoteTotalPanels > 0 ? totalAfterProj / _quoteTotalPanels : 0;
-
-  const headers = isZh
-    ? ['料号 / 名称','图片','数量','重量','销售单位','折扣率','单价 (€)','小计 (€)']
-    : ['ITEM DESCRIPTION','IMAGE','QUANTITY','WEIGHT','SALES UNIT','DISCOUNT RATE','UNIT PRICE','PRICE'];
-
-  const rowsHtml = _quoteData.map(r => {
-    const p = r.pack;
-    const qty = r.packCount * p.packSize;
-    const rowWeight = r.packCount * r.weight;
-    const lineTotal = r.unitPrice * r.packCount * (1 - r.discount / 100);
-    const salesUnit = `${r.packCount} × (${p.packSize} ${isZh ? p.unitZh : p.unitEn})`;
-    const imgTag = r.imgSrc ? `<img src="${r.imgSrc}" style="width:40px;height:32px;object-fit:contain;">` : '';
-    return `<tr>
-      <td><span style="font-size:9px;color:#888;font-family:monospace;display:block;">${p.sku}</span><strong>${isZh?p.nameZh:p.nameEn}</strong></td>
-      <td style="text-align:center;">${imgTag}</td>
-      <td>${qty}</td>
-      <td>${rowWeight>0?rowWeight.toFixed(1)+' kg':'—'}</td>
-      <td>${salesUnit}</td>
-      <td>${r.discount}%</td>
-      <td style="text-align:right;">${r.unitPrice>0?r.unitPrice.toFixed(3):'—'}</td>
-      <td style="text-align:right;">${r.unitPrice>0?lineTotal.toFixed(3):'—'}</td>
-    </tr>`;
-  }).join('');
-
-  const today = new Date().toLocaleDateString(isZh?'zh-CN':'en-GB');
-
-  const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html><html><head>
-    <meta charset="UTF-8">
-    <title>PVSTAR ${isZh?'报价单':'Quotation'}</title>
-    <style>
-      @page { size: A4 landscape; margin: 18mm 14mm; }
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: Arial, sans-serif; font-size: 11px; color: #111; }
-      .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 2px solid #111; padding-bottom: 10px; }
-      .logo { height: 44px; object-fit: contain; }
-      .title { font-size: 18px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
-      .date { font-size: 11px; color: #666; margin-top: 4px; }
-      table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-      th { background: #111; color: #fff; padding: 7px 8px; text-align: left; font-size: 10px; font-weight: 600; letter-spacing: .5px; white-space: nowrap; }
-      td { padding: 7px 8px; border-bottom: 1px solid #eee; vertical-align: middle; }
-      tr:nth-child(even) td { background: #f9f9f9; }
-      tfoot td { border-top: 1px solid #ccc; padding: 6px 8px; }
-      tfoot tr:last-child td { border-top: 2px solid #111; font-weight: 700; font-size: 12px; }
-      .summary { margin-top: 14px; float: right; min-width: 260px; }
-      .summary table { width: 100%; }
-      .summary td { padding: 5px 8px; border-bottom: 1px solid #eee; }
-      .summary td:last-child { text-align: right; font-weight: 600; }
-      .summary tr:last-child td { border-top: 2px solid #111; font-weight: 700; font-size: 13px; }
-      .footer { margin-top: 24px; font-size: 9px; color: #aaa; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }
-    </style>
-  </head><body>
-    <div class="header">
-      <div>
-        <img class="logo" src="${LOGO_SRC}" alt="PVSTAR">
-      </div>
-      <div style="text-align:right;">
-        <div class="title">${isZh?'报价单':'QUOTATION'}</div>
-        <div class="date">${isZh?'日期':'Date'}: ${today}</div>
-        <div class="date">${isZh?'系统':'System'}: PVSTAR ${isZh?'斜屋面光伏支架':'Pitched Roof PV Mounting'}</div>
-      </div>
-    </div>
-    <table>
-      <thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
-      <tbody>${rowsHtml}</tbody>
-      <tfoot>
-        <tr>
-          <td colspan="7" style="font-weight:600;">${isZh?'合计':'Total'}</td>
-          <td style="text-align:right;font-weight:600;">${subtotal>0?subtotal.toFixed(2)+' €':'—'}</td>
-        </tr>
-      </tfoot>
-    </table>
-    <div class="summary">
-      <table>
-        <tr><td>${isZh?'小计':'Subtotal'}</td><td>${subtotal>0?subtotal.toFixed(2)+' €':'—'}</td></tr>
-        <tr><td>${isZh?'项目折扣':'Project Discount'}</td><td>${projDiscount}%</td></tr>
-        <tr><td>${isZh?'总价':'Total'}</td><td>${totalAfterProj>0?totalAfterProj.toFixed(2)+' €':'—'}</td></tr>
-        <tr><td style="font-weight:700;">€ / Panel</td><td style="font-weight:700;">${perPanel>0?perPanel.toFixed(2):'—'}</td></tr>
-      </table>
-    </div>
-    <div class="footer">PVSTAR · pvstar.com · ${isZh?'本报价单由系统自动生成':'This quotation is auto-generated'}</div>
-  </body></html>`);
-  win.document.close();
-  setTimeout(() => win.print(), 500);
-}
-
-// ════════════════════════════════════════════
-//  Export: Excel via CSV (universally compatible)
-// ════════════════════════════════════════════
-function exportQuoteExcel() {
-  const isZh = lang === 'zh';
-  const projDiscount = parseInt(document.getElementById('projectDiscount').value) || 0;
-
-  let subtotal = 0, totalWeight = 0;
-  _quoteData.forEach(r => {
-    totalWeight += r.packCount * r.weight;
-    subtotal    += r.unitPrice * r.packCount * (1 - r.discount / 100);
-  });
-  const totalAfterProj = subtotal * (1 - projDiscount / 100);
-  const perPanel = _quoteTotalPanels > 0 ? totalAfterProj / _quoteTotalPanels : 0;
-  const today = new Date().toLocaleDateString(isZh?'zh-CN':'en-GB');
-
-  const esc = v => `"${String(v).replace(/"/g,'""')}"`;
-
-  const headers = isZh
-    ? ['料号','名称','数量','重量(kg)','销售单位','折扣率(%)','单价(€)','小计(€)']
-    : ['SKU','Name','Qty','Weight(kg)','Sales Unit','Discount(%)','Unit Price(€)','Subtotal(€)'];
-
-  const rows = _quoteData.map(r => {
-    const p = r.pack;
-    const qty = r.packCount * p.packSize;
-    const rowWeight = r.packCount * r.weight;
-    const lineTotal = r.unitPrice * r.packCount * (1 - r.discount / 100);
-    const salesUnit = `${r.packCount} x (${p.packSize} ${isZh?p.unitZh:p.unitEn})`;
-    return [p.sku, isZh?p.nameZh:p.nameEn, qty,
-      rowWeight>0?rowWeight.toFixed(1):'', salesUnit,
-      r.discount, r.unitPrice>0?r.unitPrice.toFixed(3):'',
-      r.unitPrice>0?lineTotal.toFixed(3):''].map(esc).join(',');
-  });
-
-  const summaryLabel = isZh
-    ? [['','','','','','','"小计"',`"${subtotal>0?subtotal.toFixed(2):0} €"`],
-       ['','','','','','','"项目折扣"',`"${projDiscount}%"`],
-       ['','','','','','','"总价"',`"${totalAfterProj>0?totalAfterProj.toFixed(2):0} €"`],
-       ['','','','','','','"€ / Panel"',`"${perPanel>0?perPanel.toFixed(2):0}"`]]
-    : [['','','','','','','"Subtotal"',`"${subtotal>0?subtotal.toFixed(2):0} €"`],
-       ['','','','','','','"Project Discount"',`"${projDiscount}%"`],
-       ['','','','','','','"Total"',`"${totalAfterProj>0?totalAfterProj.toFixed(2):0} €"`],
-       ['','','','','','','"€ / Panel"',`"${perPanel>0?perPanel.toFixed(2):0}"`]];
-
-  const csvLines = [
-    `"PVSTAR ${isZh?'报价单':'Quotation'} - ${today}"`,
-    '',
-    headers.map(esc).join(','),
-    ...rows,
-    '',
-    ...summaryLabel.map(r => r.join(','))
-  ];
-
-  const bom = '\uFEFF'; // UTF-8 BOM for Excel
-  const csvContent = bom + csvLines.join('\r\n');
-  const fname = `PVSTAR_Quotation_${today.replace(/\//g,'-')}.csv`;
-  try {
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = fname;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  } catch(e) {
-    const dataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
-    const a = document.createElement('a');
-    a.href = dataUri; a.download = fname;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-  }
-}
 
 </script>
 
@@ -1739,64 +1362,263 @@ function exportQuoteExcel() {
 
 <!-- ── PVSTAR Round-up Modal ── -->
 <div id="roundupModal" style="display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.6);overflow-y:auto;">
-  <div style="max-width:900px;margin:40px auto;background:#fff;padding:32px;position:relative;font-family:Inter,sans-serif;">
+  <div style="max-width:940px;margin:40px auto;background:#fff;padding:32px;position:relative;font-family:'Inter',sans-serif;">
     <button onclick="closeRoundupModal()" style="position:absolute;top:16px;right:20px;border:none;background:none;font-size:24px;cursor:pointer;color:#666;">&times;</button>
 
     <h2 id="roundupTitle" style="font-size:1.5rem;font-weight:300;margin-bottom:6px;">销售包装数量</h2>
-    <p id="roundupSubtitle" style="font-size:13px;color:#666;margin-bottom:28px;">基于计算结果向上取整至整包</p>
+    <p id="roundupSubtitle" style="font-size:13px;color:#666;margin-bottom:28px;">基于计算结果向上取整至整包，可手动调整数量</p>
 
-    <!-- Pack count table -->
     <h3 id="roundupPackTitle" style="font-size:1rem;font-weight:500;margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid #000;">包装清单</h3>
-    <div id="roundupPackGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:32px;"></div>
+    <div id="roundupPackGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:32px;"></div>
 
-    <!-- Rounded quantities table -->
     <h3 id="roundupQtyTitle" style="font-size:1rem;font-weight:500;margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid #000;">取整后配件数量</h3>
-    <div id="roundupQtyGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;"></div>
+    <div id="roundupQtyGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:28px;"></div>
 
-    <!-- Quote section (hidden until generated) -->
-    <div id="quoteSection" style="display:none;margin-top:32px;">
-      <!-- Stale warning banner -->
-      <div id="quoteStaleBanner" style="display:none;background:#fff8e1;border:1px solid #f9a825;padding:10px 14px;margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:12px;">
-        <span id="quoteStaleBannerMsg" style="font-size:12px;color:#7a5000;">⚠ 配件包数量已修改，报价单数据已过期</span>
-        <button onclick="generateQuote()" class="btn btn-primary" style="font-size:11px;padding:5px 14px;white-space:nowrap;" id="updateQuoteBtn">更新报价单</button>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #000;">
-        <h3 id="quoteTitleLabel" style="font-size:1rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">报价单 / Quotation</h3>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <span id="projDiscLabel" style="font-size:12px;color:#666;">项目折扣 Project Discount:</span>
-          <div style="display:flex;align-items:center;gap:4px;">
-            <input id="projectDiscount" type="number" min="0" max="100" step="1" value="0"
-              style="width:64px;padding:5px 8px;border:1px solid #ccc;font-size:13px;text-align:center;"
-              oninput="renderQuoteTable()">
-            <span style="font-size:12px;color:#666;">%</span>
-          </div>
-        </div>
-      </div>
-      <div style="overflow-x:auto;">
-        <table id="quoteTable" style="width:100%;border-collapse:collapse;font-size:12px;">
-          <thead id="quoteHead"></thead>
-          <tbody id="quoteBody"></tbody>
-          <tfoot id="quoteFoot"></tfoot>
-        </table>
-      </div>
-    </div>
-
-    <div style="margin-top:24px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
-      <button onclick="generateQuote()" class="btn btn-primary" id="genQuoteBtn" style="min-width:140px;">
-        <span id="genQuoteBtnLabel">生成报价单</span>
-      </button>
-      <button onclick="exportQuotePDF()" class="btn" id="exportPDFBtn" style="display:none;min-width:120px;">
-        <svg class="inline mr-2 w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        <span id="exportPDFLabel">导出 PDF</span>
-      </button>
-      <button onclick="exportQuoteExcel()" class="btn" id="exportExcelBtn" style="display:none;min-width:120px;">
-        <svg class="inline mr-2 w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        <span id="exportExcelLabel">导出 Excel</span>
-      </button>
-      <button onclick="closeRoundupModal()" class="btn" style="min-width:100px;" id="closeRoundupBtn">关闭</button>
+    <div style="display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;">
+      <button onclick="closeRoundupModal()" class="btn" style="min-width:80px;">关闭 / Close</button>
+      <button onclick="openQuoteModal()" class="btn btn-primary" style="min-width:140px;">&#128196; 生成报价单 / Quote</button>
     </div>
   </div>
 </div>
+
+<!-- ── Quote Modal ── -->
+<div id="quoteModal" style="display:none;position:fixed;inset:0;z-index:9996;background:rgba(0,0,0,0.65);overflow-y:auto;">
+  <div style="max-width:1000px;margin:32px auto 60px;background:#fff;position:relative;font-family:'Inter',sans-serif;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div style="padding:24px 32px;border-bottom:2px solid #000;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+      <img id="quoteLogoImg" style="height:52px;object-fit:contain;flex-shrink:0;">
+      <div style="text-align:right;font-size:12px;color:#555;line-height:1.7;">
+        <div style="font-size:14px;font-weight:600;color:#000;">Chint PVSTAR Energy Solution GmbH</div>
+        <div>Ludwig-Erhard-Stra&szlig;e 30&ndash;34, 65760 Eschborn</div>
+        <div>+49 6196 7700560</div>
+        <div>VAT No.: DE366513627</div>
+      </div>
+    </div>
+    <button onclick="closeQuoteModal()" style="position:absolute;top:14px;right:18px;border:none;background:none;font-size:24px;cursor:pointer;color:#888;">&times;</button>
+    <div style="padding:24px 32px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-size:1.4rem;font-weight:300;letter-spacing:-.01em;margin-bottom:4px;">报价单 &nbsp;/&nbsp; Quotation</h2>
+          <div style="font-size:12px;color:#999;">Date: <span id="quoteDate"></span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:#f8f8f8;padding:10px 16px;border-left:3px solid #000;">
+          <span style="font-size:12px;color:#555;">整体折扣 Overall Discount:</span>
+          <button onclick="adjustOverallDisc(-5)" style="width:26px;height:26px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:14px;">−</button>
+          <span id="overallDiscDisplay" style="font-size:1.1rem;font-weight:500;min-width:3rem;text-align:center;">0%</span>
+          <button onclick="adjustOverallDisc(+5)" style="width:26px;height:26px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:14px;">+</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="quote-tbl" id="quoteTable">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>名称 / Name</th>
+              <th style="text-align:center;">数量<br>Qty</th>
+              <th style="text-align:right;">单价<br>Unit (€)</th>
+              <th style="text-align:center;">折扣<br>Discount</th>
+              <th style="text-align:right;">小计<br>Subtotal (€)</th>
+              <th style="text-align:right;">重量<br>Weight (kg)</th>
+            </tr>
+          </thead>
+          <tbody id="quoteTableBody"></tbody>
+          <tfoot id="quoteTableFoot"></tfoot>
+        </table>
+      </div>
+      <div style="font-size:11px;color:#bbb;margin-top:8px;">* 如需修改包装数量请关闭此窗口在销售包装页面调整后重新生成</div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px;flex-wrap:wrap;">
+        <button onclick="closeQuoteModal()" class="btn" style="min-width:80px;">关闭</button>
+        <button onclick="exportQuoteExcel()" class="btn" style="min-width:120px;">&#128196; 导出 Excel</button>
+        <button onclick="exportQuotePDF()" class="btn btn-primary" style="min-width:120px;">&#128196; 导出 PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  Quote Modal
+// ════════════════════════════════════════════
+const COMPANY = {
+  name: 'Chint PVSTAR Energy Solution GmbH',
+  addr: 'Ludwig-Erhard-Strasse 30-34, 65760 Eschborn',
+  tel:  '+49 6196 7700560',
+  vat:  'DE366513627'
+};
+
+let _overallDisc = 0;
+let _itemDiscs   = {};
+let _quotePacks  = [];
+
+function openQuoteModal() {
+  _quotePacks  = getEffectivePacks().map(p => Object.assign({}, p, { count: _currentPackCounts[p.sku] || 0 }));
+  _overallDisc = 0;
+  _itemDiscs   = {};
+  document.getElementById('quoteDate').textContent    = new Date().toLocaleDateString('de-DE');
+  document.getElementById('quoteLogoImg').src          = LOGO_SRC;
+  document.getElementById('overallDiscDisplay').textContent = '0%';
+  renderQuoteTable();
+  document.getElementById('quoteModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeQuoteModal() {
+  document.getElementById('quoteModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function adjustOverallDisc(delta) {
+  _overallDisc = Math.max(0, Math.min(100, _overallDisc + delta));
+  document.getElementById('overallDiscDisplay').textContent = _overallDisc + '%';
+  // reset per-item discs so overall applies uniformly
+  _itemDiscs = {};
+  renderQuoteTable();
+}
+
+function setItemDisc(sku, val) {
+  _itemDiscs[sku] = Math.max(0, Math.min(100, Number(val) || 0));
+  renderQuoteTable();
+}
+
+function renderQuoteTable() {
+  const isZh  = lang === 'zh';
+  const tbody  = document.getElementById('quoteTableBody');
+  const tfoot  = document.getElementById('quoteTableFoot');
+  let totalNet = 0, totalWeight = 0;
+
+  tbody.innerHTML = _quotePacks.map(p => {
+    const name    = isZh ? p.nameZh : p.nameEn;
+    const qty     = p.count;
+    const unitP   = p.price || 0;
+    const disc    = (_itemDiscs[p.sku] !== undefined) ? _itemDiscs[p.sku] : _overallDisc;
+    const subtotal = qty * unitP * (1 - disc / 100);
+    const wt       = qty * (p.weight || 0);
+    totalNet   += subtotal;
+    totalWeight+= wt;
+    const subStr = unitP > 0 ? subtotal.toFixed(2) : '—';
+    const wtStr  = wt  > 0 ? wt.toFixed(2)      : '—';
+    return '<tr>' +
+      '<td style="font-size:11px;color:#777;">' + p.sku + '</td>' +
+      '<td>' + name + '</td>' +
+      '<td style="text-align:center;">' + qty + '</td>' +
+      '<td style="text-align:right;">' + (unitP > 0 ? unitP.toFixed(2) : '—') + '</td>' +
+      '<td style="text-align:center;"><input type="number" class="disc-input" min="0" max="100" step="1" value="' + disc + '" oninput="setItemDisc(\'' + p.sku + '\', this.value)" title="Item discount %"> %</td>' +
+      '<td style="text-align:right;">' + subStr + '</td>' +
+      '<td style="text-align:right;">' + wtStr + '</td>' +
+      '</tr>';
+  }).join('');
+
+  tfoot.innerHTML = '<tr><td colspan="4" style="text-align:right;">合计 / Total</td><td></td>' +
+    '<td style="text-align:right;">€ ' + totalNet.toFixed(2) + '</td>' +
+    '<td style="text-align:right;">' + (totalWeight > 0 ? totalWeight.toFixed(2)+' kg' : '—') + '</td></tr>';
+}
+
+function exportQuoteExcel() {
+  if (typeof XLSX === 'undefined') { alert('SheetJS library not loaded. Please check internet connection.'); return; }
+  const isZh = lang === 'zh';
+  const rows = [
+    [COMPANY.name],
+    [COMPANY.addr, '', COMPANY.tel, '', 'VAT: '+COMPANY.vat],
+    [],
+    [isZh ? '报价单' : 'Quotation', '', '', '', '', 'Date: '+document.getElementById('quoteDate').textContent],
+    [],
+    ['SKU', isZh?'名称':'Name', isZh?'数量':'Qty', isZh?'单价(€)':'Unit(€)', isZh?'折扣%':'Disc%', isZh?'小计(€)':'Sub(€)', isZh?'重量(kg)':'Wt(kg)']
+  ];
+  let totalNet = 0, totalWeight = 0;
+  _quotePacks.forEach(function(p) {
+    const name    = isZh ? p.nameZh : p.nameEn;
+    const qty     = p.count;
+    const unitP   = p.price || 0;
+    const disc    = (_itemDiscs[p.sku] !== undefined) ? _itemDiscs[p.sku] : _overallDisc;
+    const subtotal = qty * unitP * (1 - disc / 100);
+    const wt       = qty * (p.weight || 0);
+    totalNet   += subtotal;
+    totalWeight+= wt;
+    rows.push([p.sku, name, qty, unitP || '', disc, unitP > 0 ? +subtotal.toFixed(2) : '', wt > 0 ? +wt.toFixed(2) : '']);
+  });
+  rows.push([]);
+  rows.push(['', '', '', '', isZh?'合计':'Total', +totalNet.toFixed(2), totalWeight > 0 ? +totalWeight.toFixed(2) : '']);
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [18,28,10,14,10,14,12].map(function(w){return {wch:w};});
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Quotation');
+  XLSX.writeFile(wb, 'PVSTAR_Quotation.xlsx');
+}
+
+function exportQuotePDF() {
+  if (typeof window.jspdf === 'undefined') { alert('jsPDF library not loaded. Please check internet connection.'); return; }
+  var jsPDF = window.jspdf.jsPDF;
+  var doc   = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  var isZh  = lang === 'zh';
+  var pageW = 210, margin = 14;
+
+  // Logo
+  try { doc.addImage(LOGO_SRC, 'JPEG', margin, 10, 40, 14, undefined, 'FAST'); } catch(e) {}
+
+  // Company info
+  doc.setFontSize(9); doc.setTextColor(80);
+  var compLines = [COMPANY.name, COMPANY.addr, COMPANY.tel, 'VAT No.: '+COMPANY.vat];
+  compLines.forEach(function(l, i) {
+    var tw = doc.getTextWidth(l);
+    doc.text(l, pageW - margin - tw, 12 + i*5);
+  });
+
+  // Divider
+  doc.setDrawColor(0); doc.setLineWidth(0.5);
+  doc.line(margin, 30, pageW-margin, 30);
+
+  // Title + date
+  doc.setFontSize(14); doc.setTextColor(0);
+  doc.text(isZh ? 'Quotation / 报价单' : 'Quotation', margin, 38);
+  doc.setFontSize(9); doc.setTextColor(150);
+  doc.text('Date: '+document.getElementById('quoteDate').textContent, margin, 44);
+
+  // Table
+  var totalNet = 0, totalWeight = 0;
+  var bodyRows = _quotePacks.map(function(p) {
+    var name    = isZh ? p.nameZh : p.nameEn;
+    var qty     = p.count;
+    var unitP   = p.price || 0;
+    var disc    = (_itemDiscs[p.sku] !== undefined) ? _itemDiscs[p.sku] : _overallDisc;
+    var sub     = qty * unitP * (1 - disc / 100);
+    var wt      = qty * (p.weight || 0);
+    totalNet   += sub;
+    totalWeight+= wt;
+    return [p.sku, name, qty, unitP > 0 ? unitP.toFixed(2) : '-', disc+'%', unitP > 0 ? sub.toFixed(2) : '-', wt > 0 ? wt.toFixed(2) : '-'];
+  });
+  bodyRows.push(['', isZh?'Total':'Total', '', '', '', totalNet.toFixed(2), totalWeight > 0 ? totalWeight.toFixed(2) : '-']);
+
+  doc.autoTable({
+    startY: 48,
+    head: [['SKU', isZh?'名称':'Name', isZh?'数量':'Qty', isZh?'单价(€)':'Unit(€)', isZh?'折扣':'Disc%', isZh?'小计(€)':'Sub(€)', isZh?'重量(kg)':'Wt(kg)']],
+    body: bodyRows,
+    styles: { fontSize:8, cellPadding:2.5 },
+    headStyles: { fillColor:[0,0,0], textColor:255, fontStyle:'bold' },
+    columnStyles: {
+      0:{cellWidth:32}, 1:{cellWidth:44}, 2:{cellWidth:12,halign:'center'},
+      3:{cellWidth:18,halign:'right'},    4:{cellWidth:14,halign:'center'},
+      5:{cellWidth:18,halign:'right'},    6:{cellWidth:16,halign:'right'}
+    },
+    didParseCell: function(data) {
+      if (data.row.index === bodyRows.length - 1) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.fillColor = [245,245,245];
+      }
+    },
+    margin: { left: margin, right: margin }
+  });
+
+  // Footer
+  var finalY = doc.lastAutoTable.finalY + 8;
+  doc.setFontSize(8); doc.setTextColor(150);
+  doc.text(COMPANY.name + ' | ' + COMPANY.addr + ' | ' + COMPANY.tel, margin, finalY);
+
+  doc.save('PVSTAR_Quotation.pdf');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeRoundupModal(); closeQuoteModal(); }
+});
+</script>
 
 </body>
 </html>

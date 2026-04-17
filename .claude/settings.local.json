@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install *)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"from pypdf import PdfReader; r=PdfReader\\('/c/Users/wanxi/Downloads/pvstar mountings calculator/光伏支架计算软件开发需求.pdf'\\); print\\(len\\(r.pages\\), 'pages'\\); [print\\(f'=PAGE {i+1}=\\\\n', r.pages[i].extract_text\\(\\)\\) for i in range\\(len\\(r.pages\\)\\)]\")",
+      "Bash(pip3 list *)",
+      "Bash(python3)",
+      "Bash(python3 -c \"import pdfplumber; pdf=pdfplumber.open\\('C:/Users/wanxi/Downloads/pvstar mountings calculator/光伏支架计算软件开发需求.pdf'\\); print\\(len\\(pdf.pages\\)\\); pdf.close\\(\\)\")",
+      "Bash(python3 -c \"print\\('hello'\\)\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(py --version)",
+      "Bash(py -c \"print\\('hello'\\)\")",
+      "Bash(py -c ' *)",
+      "Bash(cat)",
+      "Bash(py /tmp/db_code.py)",
+      "Bash(py /tmp/roundup_code.py)",
+      "Bash(py /tmp/modal_code.py)",
+      "Bash(py \"C:/Users/wanxi/Downloads/pvstar-calculator/.claude/worktrees/eager-sanderson-3e8668/patch_modal.py\")",
+      "Bash(py \"C:/Users/wanxi/Downloads/pvstar-calculator/.claude/worktrees/eager-sanderson-3e8668/write_admin.py\")",
+      "Bash(py \"C:/Users/wanxi/Downloads/pvstar-calculator/.claude/worktrees/eager-sanderson-3e8668/patch_imgcompress.py\")",
+      "Bash(py \"C:/Users/wanxi/Downloads/pvstar-calculator/.claude/worktrees/eager-sanderson-3e8668/patch_idb.py\")"
+    ]
+  }
+}
