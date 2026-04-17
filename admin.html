@@ -70,27 +70,27 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
 <div class="topbar">
   <span class="topbar-title">&#9881; PVSTAR 后台数据管理</span>
   <div class="topbar-actions">
-    <button class="btn btn-sm" style="border-color:#555;color:#ccc;background:transparent;" onclick="exportDB()">&#8595; 导出 JSON</button>
+    <button class="btn btn-sm" id="adminBtnZh" style="border-color:#555;color:#fff;background:#555;margin-right:4px;" onclick="setAdminLang('zh')">中</button><button class="btn btn-sm" id="adminBtnEn" style="border-color:#555;color:#ccc;background:transparent;margin-right:8px;" onclick="setAdminLang('en')">EN</button><button class="btn btn-sm" id="topExportBtn" style="border-color:#555;color:#ccc;background:transparent;" onclick="exportDB()">&#8595; 导出 JSON</button>
     <label class="btn btn-sm" style="border-color:#555;color:#ccc;background:transparent;cursor:pointer;">
-      &#8593; 导入 JSON <input type="file" accept=".json" style="display:none;" onchange="importDB(event)">
+      <span id="topImportLabel">&#8593; 导入 JSON</span> <input type="file" accept=".json" style="display:none;" onchange="importDB(event)">
     </label>
-    <button class="btn btn-sm btn-primary" onclick="window.open('index.html','_blank')" style="border-color:#fff;">&#8592; 返回计算器</button>
+    <button class="btn btn-sm btn-primary" id="topBackBtn" onclick="window.open('index.html','_blank')" style="border-color:#fff;">&#8592; 返回计算器</button>
   </div>
 </div>
 
 <div class="sidebar">
-  <div class="sidebar-item active" id="tab-acc" onclick="showTab('acc')">&#128269; 单个配件</div>
-  <div class="sidebar-item" id="tab-pkg" onclick="showTab('pkg')">&#128230; 配件包</div>
+  <div class="sidebar-item active" id="tab-acc" onclick="showTab('acc')"><span id="sideAcc">&#128269; 单个配件</span></div>
+  <div class="sidebar-item" id="tab-pkg" onclick="showTab('pkg')"><span id="sidePkg">&#128230; 配件包</span></div>
   <div class="sidebar-sep"></div>
-  <div class="sidebar-item" id="tab-io" onclick="showTab('io')" style="color:#888;">&#8645; 导入/导出</div>
+  <div class="sidebar-item" id="tab-io" onclick="showTab('io')" style="color:#888;"><span id="sideIo">&#8645; 导入/导出</span></div>
 </div>
 
 <div class="main">
   <!-- Accessories -->
   <div id="panel-acc">
     <div class="section-header">
-      <div><div class="section-title">单个配件</div><div class="section-sub">料号、图片、重量、价格、附件等</div></div>
-      <button class="btn btn-primary" onclick="openAccModal()">+ 新增配件</button>
+      <div><div class="section-title" id="secAccTitle">单个配件</div><div class="section-sub" id="secAccSub">料号、图片、重量、价格、附件等</div></div>
+      <button class="btn btn-primary" id="addAccBtn" onclick="openAccModal()">+ 新增配件</button>
     </div>
     <div id="acc-list"></div>
   </div>
@@ -98,29 +98,29 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
   <!-- Packages -->
   <div id="panel-pkg" style="display:none;">
     <div class="section-header">
-      <div><div class="section-title">配件包</div><div class="section-sub">包含包内配件构成、规格和价格</div></div>
-      <button class="btn btn-primary" onclick="openPkgModal()">+ 新增配件包</button>
+      <div><div class="section-title" id="secPkgTitle">配件包</div><div class="section-sub" id="secPkgSub">包含包内配件构成、规格和价格</div></div>
+      <button class="btn btn-primary" id="addPkgBtn" onclick="openPkgModal()">+ 新增配件包</button>
     </div>
     <div id="pkg-list"></div>
   </div>
 
   <!-- I/O -->
   <div id="panel-io" style="display:none;">
-    <div class="section-title" style="margin-bottom:16px;">数据导入 / 导出</div>
+    <div class="section-title" style="margin-bottom:16px;" id="ioTitle">数据导入 / 导出</div>
     <div class="card" style="margin-bottom:14px;">
-      <div class="card-title" style="margin-bottom:10px;">导出数据库</div>
-      <p style="font-size:13px;color:#555;margin-bottom:12px;">将当前所有配件和配件包数据导出为 pvstar_data.json 文件。</p>
-      <button class="btn btn-primary" onclick="exportDB()">&#8595; 导出 pvstar_data.json</button>
+      <div class="card-title" style="margin-bottom:10px;" id="exportDbTitle">导出数据库</div>
+      <p style="font-size:13px;color:#555;margin-bottom:12px;" id="exportDbDesc">将当前所有配件和配件包数据导出为 pvstar_data.json 文件。</p>
+      <button class="btn btn-primary" id="exportDbBtn" onclick="exportDB()">&#8595; 导出 pvstar_data.json</button>
     </div>
     <div class="card">
-      <div class="card-title" style="margin-bottom:10px;">导入数据库</div>
-      <p style="font-size:13px;color:#555;margin-bottom:12px;">从 JSON 文件恢复数据（将覆盖当前数据，建议先备份）。</p>
+      <div class="card-title" style="margin-bottom:10px;" id="importDbTitle">导入数据库</div>
+      <p style="font-size:13px;color:#555;margin-bottom:12px;" id="importDbDesc">从 JSON 文件恢复数据（将覆盖当前数据，建议先备份）。</p>
       <label class="btn" style="cursor:pointer;display:inline-block;">&#8593; 选择文件导入 <input type="file" accept=".json" style="display:none;" onchange="importDB(event)"></label>
     </div>
     <div class="card" style="margin-top:14px;border-color:#c00;">
-      <div class="card-title" style="margin-bottom:10px;color:#c00;">重置数据库</div>
-      <p style="font-size:13px;color:#555;margin-bottom:12px;">清除 IndexedDB 中所有数据并恢复默认配件列表（不可撤销）。</p>
-      <button class="btn btn-danger" onclick="clearDB()">&#8635; 重置为默认数据</button>
+      <div class="card-title" style="margin-bottom:10px;color:#c00;" id="resetDbTitle">重置数据库</div>
+      <p style="font-size:13px;color:#555;margin-bottom:12px;" id="resetDbDesc">清除 IndexedDB 中所有数据并恢复默认配件列表（不可撤销）。</p>
+      <button class="btn btn-danger" id="resetDbBtn" onclick="clearDB()">&#8635; 重置为默认数据</button>
     </div>
   </div>
 </div>
@@ -131,18 +131,18 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
     <button class="modal-close" onclick="closeAccModal()">&times;</button>
     <div class="modal-title" id="accModalTitle">新增配件</div>
     <div class="field-row">
-      <div class="field"><label>料号 Part No.</label><input id="acc-partNo" placeholder="留空则不显示"></div>
-      <div class="field"><label>名称（中文）*</label><input id="acc-nameZh" placeholder="例：导轨"></div>
+      <div class="field"><label id="acc-partNo-label">料号 Part No.</label><input id="acc-partNo" placeholder="留空则不显示"></div>
+      <div class="field"><label id="acc-nameZh-label">名称（中文）*</label><input id="acc-nameZh" placeholder="例：导轨"></div>
     </div>
     <div class="field-row">
       <div class="field"><label>Name (EN)</label><input id="acc-nameEn" placeholder="e.g. Rail"></div>
-      <div class="field"><label>重量 Weight (kg)</label><input id="acc-weight" type="number" min="0" step="0.001" placeholder="0.000"></div>
+      <div class="field"><label id="acc-weight-label">重量 Weight (kg)</label><input id="acc-weight" type="number" min="0" step="0.001" placeholder="0.000"></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>价格 Price (€)</label><input id="acc-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label id="acc-price-label">价格 Price (€)</label><input id="acc-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>品牌 Brand</label>
+      <div class="field"><label id="acc-brand-label">品牌 Brand</label>
         <select id="acc-brand" style="width:100%;padding:8px 10px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;background:#fff;">
           <option value="">— 未指定 —</option>
           <option value="PVSTAR">PVSTAR</option>
@@ -151,14 +151,14 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
         </select>
       </div>
     </div>
-    <div class="field"><label>产品描述 Description</label><textarea id="acc-desc" placeholder="规格、材质、用途等..."></textarea></div>
+    <div class="field"><label id="acc-desc-label">产品描述 Description</label><textarea id="acc-desc" placeholder="规格、材质、用途等..."></textarea></div>
     <div class="field">
-      <label>图片 Images</label>
-      <label class="btn btn-sm" style="cursor:pointer;display:inline-block;margin-bottom:6px;">+ 上传图片 <input type="file" accept="image/*" multiple style="display:none;" onchange="uploadAccImages(event)"></label>
+      <label id="acc-img-label">图片 Images</label>
+      <label class="btn btn-sm" style="cursor:pointer;display:inline-block;margin-bottom:6px;"><span id="acc-upload-label">+ 上传图片</span> <input type="file" accept="image/*" multiple style="display:none;" onchange="uploadAccImages(event)"></label>
       <div class="img-list" id="acc-images"></div>
     </div>
     <div class="field">
-      <label>附件 Attachments（说明书、安装视频链接等）</label>
+      <label id="acc-attach-label">附件 Attachments（说明书、安装视频链接等）</label>
       <div style="display:flex;gap:6px;margin-bottom:6px;">
         <input id="acc-aname" placeholder="名称" style="flex:1;padding:6px 8px;border:1px solid #ddd;font-size:12px;font-family:'Inter',sans-serif;">
         <input id="acc-aurl"  placeholder="URL 链接" style="flex:2;padding:6px 8px;border:1px solid #ddd;font-size:12px;font-family:'Inter',sans-serif;">
@@ -167,8 +167,8 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
       <div id="acc-alist"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn" onclick="closeAccModal()">取消</button>
-      <button class="btn btn-primary" onclick="saveAcc()">保存</button>
+      <button class="btn" id="accCancelBtn" onclick="closeAccModal()">取消</button>
+      <button class="btn btn-primary" id="accSaveBtn" onclick="saveAcc()">保存</button>
     </div>
   </div>
 </div>
@@ -179,21 +179,21 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
     <button class="modal-close" onclick="closePkgModal()">&times;</button>
     <div class="modal-title" id="pkgModalTitle">新增配件包</div>
     <div class="field-row">
-      <div class="field"><label>SKU / 料号</label><input id="pkg-sku" placeholder="例：8061010000018"></div>
-      <div class="field"><label>名称（中文）*</label><input id="pkg-nameZh" placeholder="例：导轨包"></div>
+      <div class="field"><label id="pkg-sku-label">SKU / 料号</label><input id="pkg-sku" placeholder="例：8061010000018"></div>
+      <div class="field"><label id="pkg-nameZh-label">名称（中文）*</label><input id="pkg-nameZh" placeholder="例：导轨包"></div>
     </div>
     <div class="field-row">
       <div class="field"><label>Name (EN)</label><input id="pkg-nameEn" placeholder="e.g. Rail Pack"></div>
-      <div class="field"><label>包装数量 Pack Size</label><input id="pkg-packSize" type="number" min="1" step="1" placeholder="例：4"></div>
+      <div class="field"><label id="pkg-packSize-label">包装数量 Pack Size</label><input id="pkg-packSize" type="number" min="1" step="1" placeholder="例：4"></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>重量 Weight (kg/pack)</label><input id="pkg-weight" type="number" min="0" step="0.001" placeholder="0.000"></div>
-      <div class="field"><label>尺寸 Dimensions (cm)</label><input id="pkg-dimensions" placeholder="例：120×30×30"></div>
+      <div class="field"><label id="pkg-weight-label">重量 Weight (kg/pack)</label><input id="pkg-weight" type="number" min="0" step="0.001" placeholder="0.000"></div>
+      <div class="field"><label id="pkg-dim-label">尺寸 Dimensions (cm)</label><input id="pkg-dimensions" placeholder="例：120×30×30"></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>价格 Price (€/pack)</label><input id="pkg-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label id="pkg-price-label">价格 Price (€/pack)</label><input id="pkg-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
       <div class="field">
-        <label>计算来源 Calc From</label>
+        <label id="pkg-calc-label">计算来源 Calc From</label>
         <select id="pkg-calcFrom">
           <option value="rails">rails（导轨数量）</option>
           <option value="hooks">hooks（挂钩数量）</option>
@@ -205,7 +205,7 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
       </div>
     </div>
     <div class="field-row">
-      <div class="field"><label>品牌 Brand</label>
+      <div class="field"><label id="pkg-brand-label">品牌 Brand</label>
         <select id="pkg-brand" style="width:100%;padding:8px 10px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;background:#fff;">
           <option value="">— 未指定 —</option>
           <option value="PVSTAR">PVSTAR</option>
@@ -214,20 +214,20 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
         </select>
       </div>
     </div>
-    <div class="field"><label>产品描述</label><textarea id="pkg-desc" placeholder="配件包说明..."></textarea></div>
+    <div class="field"><label id="pkg-desc-label">产品描述</label><textarea id="pkg-desc" placeholder="配件包说明..."></textarea></div>
     <div class="field">
-      <label>图片 Images</label>
-      <label class="btn btn-sm" style="cursor:pointer;display:inline-block;margin-bottom:6px;">+ 上传图片 <input type="file" accept="image/*" multiple style="display:none;" onchange="uploadPkgImages(event)"></label>
+      <label id="pkg-img-label">图片 Images</label>
+      <label class="btn btn-sm" style="cursor:pointer;display:inline-block;margin-bottom:6px;"><span id="pkg-upload-label">+ 上传图片</span> <input type="file" accept="image/*" multiple style="display:none;" onchange="uploadPkgImages(event)"></label>
       <div class="img-list" id="pkg-images"></div>
     </div>
     <div class="field">
-      <label>包内配件 Contents</label>
+      <label id="pkg-contents-label">包内配件 Contents</label>
       <div id="pkg-contents-editor"></div>
-      <button class="btn btn-sm" style="margin-top:6px;" onclick="addContentRow()">+ 添加配件</button>
+      <button class="btn btn-sm" id="addContentBtn" style="margin-top:6px;" onclick="addContentRow()">+ 添加配件</button>
     </div>
     <div class="modal-footer">
-      <button class="btn" onclick="closePkgModal()">取消</button>
-      <button class="btn btn-primary" onclick="savePkg()">保存</button>
+      <button class="btn" id="pkgCancelBtn" onclick="closePkgModal()">取消</button>
+      <button class="btn btn-primary" id="pkgSaveBtn" onclick="savePkg()">保存</button>
     </div>
   </div>
 </div>
@@ -241,6 +241,121 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
 </div>
 
 <script>
+
+let adminLang = (function(){ try{return localStorage.getItem('pvstar_lang')||'zh';}catch(e){return 'zh';} })();
+
+const ADMIN_T = {
+  zh: {
+    pageTitle:'PVSTAR 后台数据管理',topTitle:'⚙ PVSTAR 后台数据管理',
+    exportJson:'↓ 导出 JSON',importJson:'↑ 导入 JSON',backCalc:'← 返回计算器',
+    tabAcc:'🔍 单个配件',tabPkg:'📦 配件包',tabIo:'⇅ 导入/导出',
+    accTitle:'单个配件',accSub:'料号、图片、重量、价格、附件等',addAcc:'+ 新增配件',
+    pkgTitle:'配件包',pkgSub:'包含包内配件构成、规格和价格',addPkg:'+ 新增配件包',
+    ioTitle:'数据导入 / 导出',
+    exportDbTitle:'导出数据库',exportDbDesc:'将当前所有配件和配件包数据导出为 pvstar_data.json 文件。',exportDbBtn:'↓ 导出 pvstar_data.json',
+    importDbTitle:'导入数据库',importDbDesc:'从 JSON 文件恢复数据（将覆盖当前数据，建议先备份）。',importDbBtn:'↑ 选择文件导入',
+    resetTitle:'重置数据库',resetDesc:'清除 IndexedDB 中所有数据并恢复默认配件列表（不可撤销）。',resetBtn:'↺ 重置为默认数据',
+    newAcc:'新增配件',editAcc:'编辑配件',newPkg:'新增配件包',editPkg:'编辑配件包',
+    labelPartNo:'料号 Part No.',labelNameZh:'名称（中文）*',labelNameEn:'Name (EN)',
+    labelWeight:'重量 Weight (kg)',labelPrice:'价格 Price (€)',labelBrand:'品牌 Brand',
+    labelDesc:'产品描述 Description',labelImages:'图片 Images',labelUpload:'+ 上传图片',
+    labelAttach:'附件 Attachments（说明书、安装视频链接等）',attachAdd:'添加',
+    cancel:'取消',save:'保存',
+    labelSku:'SKU / 料号',labelPackSize:'包装数量 Pack Size',labelDimensions:'尺寸 Dimensions (cm)',
+    labelPrice2:'价格 Price (€/pack)',labelWeight2:'重量 Weight (kg/pack)',
+    labelCalcFrom:'计算来源 Calc From',labelPkgDesc:'产品描述',labelContents:'包内配件 Contents',addContent:'+ 添加配件',
+    weight:'重量',price:'价格',dims:'尺寸',perPack:'/pack',partNo:'料号',
+    packContents:'包内配件：',editBtn:'编辑',deleteBtn:'删除',
+    emptyAcc:'暂无配件，点击"新增配件"添加',emptyPkg:'暂无配件包，点击"新增配件包"添加',
+    toastSaved:'配件已添加',toastUpdated:'配件已更新',toastPkgSaved:'配件包已添加',toastPkgUpdated:'配件包已更新',
+    toastDeleted:'已删除',toastExported:'已导出 pvstar_data.json',toastReset:'已重置为默认数据',
+    toastMigrated:'已自动将旧数据迁移到 IndexedDB',
+    confirmDelete:'确定删除？',confirmImport:'导入将覆盖当前数据，确定？',confirmReset:'确定要清除所有数据并恢复默认？此操作不可撤销！',
+    errNameZh:'请填写名称（中文）',errSaveFail:'保存失败',errOpenFail:'打开失败',
+    errImportFmt:'格式错误',errImportFail:'导入失败',errResetFail:'重置失败',
+    importedCount:function(a,p){return '导入成功: '+a+'个配件, '+p+'个配件包';},
+    noImg:'暂无图片',attachLabel:'附件：',
+  },
+  en: {
+    pageTitle:'PVSTAR Backend Management',topTitle:'⚙ PVSTAR Backend Management',
+    exportJson:'↓ Export JSON',importJson:'↑ Import JSON',backCalc:'← Back to Calculator',
+    tabAcc:'🔍 Accessories',tabPkg:'📦 Packages',tabIo:'⇅ Import/Export',
+    accTitle:'Accessories',accSub:'Part No., images, weight, price, attachments',addAcc:'+ New Accessory',
+    pkgTitle:'Packages',pkgSub:'Pack contents, specs and pricing',addPkg:'+ New Package',
+    ioTitle:'Data Import / Export',
+    exportDbTitle:'Export Database',exportDbDesc:'Export all accessories and packages as pvstar_data.json.',exportDbBtn:'↓ Export pvstar_data.json',
+    importDbTitle:'Import Database',importDbDesc:'Restore from a JSON file (overwrites current data — back up first).',importDbBtn:'↑ Select File to Import',
+    resetTitle:'Reset Database',resetDesc:'Clear all IndexedDB data and restore defaults (cannot be undone).',resetBtn:'↺ Reset to Default',
+    newAcc:'New Accessory',editAcc:'Edit Accessory',newPkg:'New Package',editPkg:'Edit Package',
+    labelPartNo:'Part No.',labelNameZh:'Name (ZH) *',labelNameEn:'Name (EN)',
+    labelWeight:'Weight (kg)',labelPrice:'Price (€)',labelBrand:'Brand',
+    labelDesc:'Description',labelImages:'Images',labelUpload:'+ Upload Image',
+    labelAttach:'Attachments (manual, video links, etc.)',attachAdd:'Add',
+    cancel:'Cancel',save:'Save',
+    labelSku:'SKU',labelPackSize:'Pack Size',labelDimensions:'Dimensions (cm)',
+    labelPrice2:'Price (€/pack)',labelWeight2:'Weight (kg/pack)',
+    labelCalcFrom:'Calculation Source',labelPkgDesc:'Description',labelContents:'Pack Contents',addContent:'+ Add Accessory',
+    weight:'Weight',price:'Price',dims:'Dims',perPack:'/pack',partNo:'Part No.',
+    packContents:'Contents:',editBtn:'Edit',deleteBtn:'Delete',
+    emptyAcc:'No accessories. Click "New Accessory" to add.',emptyPkg:'No packages. Click "New Package" to add.',
+    toastSaved:'Accessory added',toastUpdated:'Accessory updated',toastPkgSaved:'Package added',toastPkgUpdated:'Package updated',
+    toastDeleted:'Deleted',toastExported:'Exported pvstar_data.json',toastReset:'Reset to defaults',
+    toastMigrated:'Legacy data migrated to IndexedDB',
+    confirmDelete:'Delete this item?',confirmImport:'This will overwrite current data. Continue?',confirmReset:'Reset all data to defaults? This cannot be undone!',
+    errNameZh:'Please enter a name',errSaveFail:'Save failed',errOpenFail:'Open failed',
+    errImportFmt:'Invalid format',errImportFail:'Import failed',errResetFail:'Reset failed',
+    importedCount:function(a,p){return 'Imported: '+a+' accessories, '+p+' packages';},
+    noImg:'No images',attachLabel:'Attachments:',
+  }
+};
+
+function setAdminLang(l) {
+  adminLang = l;
+  try { localStorage.setItem('pvstar_lang', l); } catch(e) {}
+  var T = ADMIN_T[l];
+  document.title = T.pageTitle;
+  var m = {
+    adminTopTitle:T.topTitle, adminBtnZh:null, adminBtnEn:null,
+    topExportBtn:T.exportJson, topBackBtn:T.backCalc,
+    sideAcc:T.tabAcc, sidePkg:T.tabPkg, sideIo:T.tabIo,
+    secAccTitle:T.accTitle, secAccSub:T.accSub, addAccBtn:T.addAcc,
+    secPkgTitle:T.pkgTitle, secPkgSub:T.pkgSub, addPkgBtn:T.addPkg,
+    ioTitle:T.ioTitle,
+    exportDbTitle:T.exportDbTitle, exportDbDesc:T.exportDbDesc, exportDbBtn:T.exportDbBtn,
+    importDbTitle:T.importDbTitle, importDbDesc:T.importDbDesc,
+    resetDbTitle:T.resetTitle, resetDbDesc:T.resetDesc, resetDbBtn:T.resetBtn,
+    accCancelBtn:T.cancel, accSaveBtn:T.save, pkgCancelBtn:T.cancel, pkgSaveBtn:T.save,
+    'acc-partNo-label':T.labelPartNo, 'acc-nameZh-label':T.labelNameZh,
+    'acc-weight-label':T.labelWeight, 'acc-price-label':T.labelPrice,
+    'acc-brand-label':T.labelBrand, 'acc-desc-label':T.labelDesc,
+    'acc-img-label':T.labelImages, 'acc-attach-label':T.labelAttach,
+    'pkg-sku-label':T.labelSku, 'pkg-nameZh-label':T.labelNameZh,
+    'pkg-packSize-label':T.labelPackSize, 'pkg-weight-label':T.labelWeight2,
+    'pkg-dim-label':T.labelDimensions, 'pkg-price-label':T.labelPrice2,
+    'pkg-calc-label':T.labelCalcFrom, 'pkg-brand-label':T.labelBrand,
+    'pkg-desc-label':T.labelPkgDesc, 'pkg-img-label':T.labelImages,
+    'pkg-contents-label':T.labelContents, addContentBtn:T.addContent,
+  };
+  Object.keys(m).forEach(function(id) {
+    if (m[id] === null) return;
+    var el = document.getElementById(id);
+    if (el) el.textContent = m[id];
+  });
+  // Upload labels (span inside label)
+  var au = document.getElementById('acc-upload-label'); if(au) au.textContent = T.labelUpload;
+  var pu = document.getElementById('pkg-upload-label'); if(pu) pu.textContent = T.labelUpload;
+  // Import label inside <label>
+  var il = document.getElementById('topImportLabel'); if(il) il.textContent = T.importJson;
+  // Lang button active state
+  var bz = document.getElementById('adminBtnZh'), be = document.getElementById('adminBtnEn');
+  if(bz){ bz.style.background = l==='zh'?'#555':'transparent'; bz.style.color = l==='zh'?'#fff':'#ccc'; }
+  if(be){ be.style.background = l==='en'?'#555':'transparent'; be.style.color = l==='en'?'#fff':'#ccc'; }
+  // Re-render the currently visible panel
+  var accPanel = document.getElementById('panel-acc');
+  var pkgPanel = document.getElementById('panel-pkg');
+  if (accPanel && accPanel.style.display !== 'none') renderAccList();
+  if (pkgPanel && pkgPanel.style.display !== 'none') renderPkgList();
+}
 // ── Global error catcher ──
 window.onerror = function(msg, src, line) {
   var el = document.getElementById('js-err');
@@ -351,7 +466,7 @@ async function migrateLegacyData() {
     });
     if (isDefault) {
       await saveDB(parsed);
-      showToast('已自动将旧数据迁移到 IndexedDB');
+      showToast(ADMIN_T[adminLang].toastMigrated);
     }
     localStorage.removeItem(LS_LEGACY);
   } catch(e) { /* ignore migration errors */ }
@@ -395,10 +510,10 @@ let _eAccId=null,_accImgs=[],_accAtts=[];
 
 async function renderAccList(){
   var db=await loadDB(),el=document.getElementById('acc-list');
-  if(!db.accessories.length){el.innerHTML='<div class="empty">暂无配件，点击"新增配件"添加</div>';return;}
+  if(!db.accessories.length){el.innerHTML='<div class="empty">'+ADMIN_T[adminLang].emptyAcc+'</div>';return;}
   el.innerHTML=db.accessories.map(function(a){
     var img=a.images&&a.images.length?'<img src="'+a.images[0]+'" style="width:56px;height:48px;object-fit:contain;border:1px solid #e5e5e5;margin-right:12px;flex-shrink:0;">':'<div style="width:56px;height:48px;background:#f5f5f5;margin-right:12px;flex-shrink:0;border:1px solid #f0f0f0;"></div>';
-    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+a.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+a.nameEn+'</span>'+(a.brand?'<span style="font-size:10px;background:#000;color:#fff;padding:1px 6px;margin-left:4px;">'+a.brand+'</span>':'')+(a.partNo?'<div style="font-size:11px;color:#aaa;">料号: '+a.partNo+'</div>':'')+'</div></div><div class="card-actions"><button class="btn btn-sm" data-id="'+ a.id +'" onclick="openAccModal(this.dataset.id)">编辑</button><button class="btn btn-sm btn-danger" data-id="'+ a.id +'" onclick="deleteAcc(this.dataset.id)">删除</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;"><span>重量: <b>'+(a.weight||'—')+'</b> kg</span><span>价格: <b>'+(a.price>0?'€'+Number(a.price).toFixed(2):'—')+'</b></span>'+(a.description?'<span style="color:#aaa;">'+a.description.substring(0,80)+'</span>':'')+'</div>'+(a.attachments&&a.attachments.length?'<div style="margin-top:6px;">'+a.attachments.map(function(at){return '<a href="'+at.url+'" target="_blank" style="font-size:11px;color:#555;margin-right:8px;">📎 '+at.name+'</a>';}).join('')+'</div>':'')+'</div>';
+    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+a.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+a.nameEn+'</span>'+(a.brand?'<span style="font-size:10px;background:#000;color:#fff;padding:1px 6px;margin-left:4px;">'+a.brand+'</span>':'')+(a.partNo?'<div style="font-size:11px;color:#aaa;">'+ADMIN_T[adminLang].partNo+': '+a.partNo+'</div>':'')+'</div></div><div class="card-actions"><button class="btn btn-sm" data-id="'+ a.id +'" onclick="openAccModal(this.dataset.id)">'+ ADMIN_T[adminLang].editBtn +'</button><button class="btn btn-sm btn-danger" data-id="'+ a.id +'" onclick="deleteAcc(this.dataset.id)">'+ ADMIN_T[adminLang].deleteBtn +'</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;"><span>重量: <b>'+(a.weight||'—')+'</b> kg</span><span>'+ADMIN_T[adminLang].price+': <b>'+(a.price>0?'€'+Number(a.price).toFixed(2):'—')+'</b></span>'+(a.description?'<span style="color:#aaa;">'+a.description.substring(0,80)+'</span>':'')+'</div>'+(a.attachments&&a.attachments.length?'<div style="margin-top:6px;">'+a.attachments.map(function(at){return '<a href="'+at.url+'" target="_blank" style="font-size:11px;color:#555;margin-right:8px;">📎 '+at.name+'</a>';}).join('')+'</div>':'')+'</div>';
   }).join('');
 }
 
@@ -406,7 +521,7 @@ async function openAccModal(id){
   try {
     _eAccId=id||null;_accImgs=[];_accAtts=[];
     var db=await loadDB(),a=id?db.accessories.find(function(x){return x.id===id;}):null;
-    document.getElementById('accModalTitle').textContent=id?'编辑配件':'新增配件';
+    document.getElementById('accModalTitle').textContent=id?ADMIN_T[adminLang].editAcc:ADMIN_T[adminLang].newAcc;
     document.getElementById('acc-partNo').value=a?(a.partNo||''):'';
     document.getElementById('acc-nameZh').value=a?(a.nameZh||''):'';
     document.getElementById('acc-nameEn').value=a?(a.nameEn||''):'';
@@ -418,7 +533,7 @@ async function openAccModal(id){
     _accAtts=a&&a.attachments?[...a.attachments]:[];
     renderAccImgs();renderAccAtts();
     document.getElementById('accModal').classList.add('open');
-  } catch(e) { showToast('打开失败: '+e.message,1); console.error('openAccModal:',e); }
+  } catch(e) { showToast(ADMIN_T[adminLang].errOpenFail+': '+e.message,1); console.error('openAccModal:',e); }
 }
 function closeAccModal(){document.getElementById('accModal').classList.remove('open');}
 
@@ -435,16 +550,16 @@ function removeAccAtt(i){_accAtts.splice(i,1);renderAccAtts();}
 async function saveAcc(){
   var db=await loadDB();
   var nameZh=document.getElementById('acc-nameZh').value.trim();
-  if(!nameZh){showToast('请填写名称（中文）',1);return;}
+  if(!nameZh){showToast(ADMIN_T[adminLang].errNameZh,1);return;}
   var data={id:_eAccId||('acc_'+uid()),partNo:document.getElementById('acc-partNo').value.trim(),nameZh:nameZh,nameEn:document.getElementById('acc-nameEn').value.trim(),imgKey:'',images:_accImgs,weight:parseFloat(document.getElementById('acc-weight').value)||0,price:parseFloat(document.getElementById('acc-price').value)||0,description:document.getElementById('acc-desc').value.trim(),brand:document.getElementById('acc-brand').value,attachments:_accAtts};
   if(_eAccId){var idx=db.accessories.findIndex(function(a){return a.id===_eAccId;});if(idx!==-1){data.imgKey=db.accessories[idx].imgKey||'';db.accessories[idx]=data;}}
   else db.accessories.push(data);
-  if(await saveDB(db)){showToast(_eAccId?'配件已更新':'配件已添加');closeAccModal();renderAccList();}
+  if(await saveDB(db)){showToast(_eAccId?ADMIN_T[adminLang].toastUpdated:ADMIN_T[adminLang].toastSaved);closeAccModal();renderAccList();}
 }
 async function deleteAcc(id){
-  if(!confirm('确定删除？'))return;
+  if(!confirm(ADMIN_T[adminLang].confirmDelete))return;
   var db=await loadDB();db.accessories=db.accessories.filter(function(a){return a.id!==id;});
-  if(await saveDB(db)){showToast('已删除');renderAccList();}
+  if(await saveDB(db)){showToast(ADMIN_T[adminLang].toastDeleted);renderAccList();}
 }
 
 /* ════════════ Packages ════════════ */
@@ -452,11 +567,11 @@ let _ePkgId=null,_pkgImgs=[],_pkgContents=[];
 
 async function renderPkgList(){
   var db=await loadDB(),el=document.getElementById('pkg-list');
-  if(!db.packages.length){el.innerHTML='<div class="empty">暂无配件包，点击"新增配件包"添加</div>';return;}
+  if(!db.packages.length){el.innerHTML='<div class="empty">'+ADMIN_T[adminLang].emptyPkg+'</div>';return;}
   el.innerHTML=db.packages.map(function(p){
     var img=p.images&&p.images.length?'<img src="'+p.images[0]+'" style="width:56px;height:48px;object-fit:contain;border:1px solid #e5e5e5;margin-right:12px;flex-shrink:0;">':'<div style="width:56px;height:48px;background:#f5f5f5;margin-right:12px;flex-shrink:0;border:1px solid #f0f0f0;"></div>';
     var contents=(p.contents||[]).map(function(c){var a=db.accessories.find(function(x){return x.id===c.accessoryId;});var n=a?(a.nameZh+' / '+a.nameEn):c.accessoryId;return '<span style="display:inline-flex;align-items:center;gap:3px;background:#f5f5f5;padding:2px 7px;margin:2px;font-size:11px;cursor:pointer;" data-id="'+ c.accessoryId +'" onclick="showAccDetail(this.dataset.id)">'+n+' × '+c.qty+'</span>';}).join('');
-    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+p.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+p.nameEn+'</span><div style="font-size:11px;color:#aaa;">'+(p.brand?'<span style="background:#000;color:#fff;font-size:10px;padding:1px 5px;margin-right:4px;">'+p.brand+'</span>':'')+'SKU: '+(p.sku||'—')+' | '+p.packSize+' pcs/pack | from: '+p.calcFrom+'</div></div></div><div class="card-actions"><button class="btn btn-sm" data-id="'+ p.id +'" onclick="openPkgModal(this.dataset.id)">编辑</button><button class="btn btn-sm btn-danger" data-id="'+ p.id +'" onclick="deletePkg(this.dataset.id)">删除</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;margin-bottom:8px;"><span>重量: <b>'+(p.weight||'—')+'</b> kg/pack</span><span>尺寸: <b>'+(p.dimensions||'—')+'</b></span><span>价格: <b>'+(p.price>0?'€'+Number(p.price).toFixed(2):'—')+'</b>/pack</span></div>'+(contents?'<div style="font-size:11px;color:#888;margin-bottom:4px;font-weight:500;">包内配件：</div>'+contents:'')+'</div>';
+    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+p.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+p.nameEn+'</span><div style="font-size:11px;color:#aaa;">'+(p.brand?'<span style="background:#000;color:#fff;font-size:10px;padding:1px 5px;margin-right:4px;">'+p.brand+'</span>':'')+'SKU: '+(p.sku||'—')+' | '+p.packSize+' pcs/pack | from: '+p.calcFrom+'</div></div></div><div class="card-actions"><button class="btn btn-sm" data-id="'+ p.id +'" onclick="openPkgModal(this.dataset.id)">'+ ADMIN_T[adminLang].editBtn +'</button><button class="btn btn-sm btn-danger" data-id="'+ p.id +'" onclick="deletePkg(this.dataset.id)">'+ ADMIN_T[adminLang].deleteBtn +'</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;margin-bottom:8px;"><span>重量: <b>'+(p.weight||'—')+'</b> kg/pack</span><span>'+ADMIN_T[adminLang].dims+': <b>'+(p.dimensions||'—')+'</b></span><span>'+ADMIN_T[adminLang].price+': <b>'+(p.price>0?'€'+Number(p.price).toFixed(2):'—')+'</b>'+ADMIN_T[adminLang].perPack+'</span></div>'+(contents?'<div style="font-size:11px;color:#888;margin-bottom:4px;font-weight:500;">'+ADMIN_T[adminLang].packContents+'</div>'+contents:'')+'</div>';
   }).join('');
 }
 
@@ -464,7 +579,7 @@ async function openPkgModal(id){
   try {
     _ePkgId=id||null;_pkgImgs=[];_pkgContents=[];
     var db=await loadDB(),p=id?db.packages.find(function(x){return x.id===id;}):null;
-    document.getElementById('pkgModalTitle').textContent=id?'编辑配件包':'新增配件包';
+    document.getElementById('pkgModalTitle').textContent=id?ADMIN_T[adminLang].editPkg:ADMIN_T[adminLang].newPkg;
     document.getElementById('pkg-sku').value=p?(p.sku||''):'';
     document.getElementById('pkg-nameZh').value=p?(p.nameZh||''):'';
     document.getElementById('pkg-nameEn').value=p?(p.nameEn||''):'';
@@ -479,7 +594,7 @@ async function openPkgModal(id){
     _pkgContents=p&&p.contents?p.contents.map(function(c){return Object.assign({},c);}):[];
     renderPkgImgs();renderContentsEditor(db);
     document.getElementById('pkgModal').classList.add('open');
-  } catch(e) { showToast('打开失败: '+e.message,1); console.error('openPkgModal:',e); }
+  } catch(e) { showToast(ADMIN_T[adminLang].errOpenFail+': '+e.message,1); console.error('openPkgModal:',e); }
 }
 function closePkgModal(){document.getElementById('pkgModal').classList.remove('open');}
 
@@ -504,16 +619,16 @@ function removeContentRow(i){_pkgContents.splice(i,1);renderContentsEditor();}
 async function savePkg(){
   var db=await loadDB();
   var nameZh=document.getElementById('pkg-nameZh').value.trim();
-  if(!nameZh){showToast('请填写名称（中文）',1);return;}
+  if(!nameZh){showToast(ADMIN_T[adminLang].errNameZh,1);return;}
   var data={id:_ePkgId||('pkg_'+uid()),sku:document.getElementById('pkg-sku').value.trim(),nameZh:nameZh,nameEn:document.getElementById('pkg-nameEn').value.trim(),imgKey:'',images:_pkgImgs,weight:parseFloat(document.getElementById('pkg-weight').value)||0,dimensions:document.getElementById('pkg-dimensions').value.trim(),price:parseFloat(document.getElementById('pkg-price').value)||0,description:document.getElementById('pkg-desc').value.trim(),brand:document.getElementById('pkg-brand').value,packSize:parseInt(document.getElementById('pkg-packSize').value)||1,calcFrom:document.getElementById('pkg-calcFrom').value,contents:_pkgContents.filter(function(c){return c.accessoryId;})};
   if(_ePkgId){var idx=db.packages.findIndex(function(p){return p.id===_ePkgId;});if(idx!==-1){data.imgKey=db.packages[idx].imgKey||'';db.packages[idx]=data;}}
   else db.packages.push(data);
-  if(await saveDB(db)){showToast(_ePkgId?'配件包已更新':'配件包已添加');closePkgModal();renderPkgList();}
+  if(await saveDB(db)){showToast(_ePkgId?ADMIN_T[adminLang].toastPkgUpdated:ADMIN_T[adminLang].toastPkgSaved);closePkgModal();renderPkgList();}
 }
 async function deletePkg(id){
-  if(!confirm('确定删除？'))return;
+  if(!confirm(ADMIN_T[adminLang].confirmDelete))return;
   var db=await loadDB();db.packages=db.packages.filter(function(p){return p.id!==id;});
-  if(await saveDB(db)){showToast('已删除');renderPkgList();}
+  if(await saveDB(db)){showToast(ADMIN_T[adminLang].toastDeleted);renderPkgList();}
 }
 
 /* ── Accessory detail popup ── */
@@ -532,7 +647,7 @@ async function exportDB(){
   var blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
   var url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download='pvstar_data.json';a.click();URL.revokeObjectURL(url);
-  showToast('已导出 pvstar_data.json');
+  showToast(ADMIN_T[adminLang].toastExported);
 }
 function importDB(ev){
   var f=ev.target.files[0];if(!f)return;
@@ -540,12 +655,12 @@ function importDB(ev){
   r.onload=function(e){
     try{
       var db=JSON.parse(e.target.result);
-      if(!db.accessories||!db.packages)throw new Error('格式错误');
-      if(!confirm('导入将覆盖当前数据，确定？'))return;
+      if(!db.accessories||!db.packages)throw new Error(ADMIN_T[adminLang].errImportFmt);
+      if(!confirm(ADMIN_T[adminLang].confirmImport))return;
       saveDB(db).then(function(ok){
-        if(ok){showToast('导入成功: '+db.accessories.length+'个配件, '+db.packages.length+'个配件包');renderAccList();renderPkgList();}
+        if(ok){showToast(ADMIN_T[adminLang].importedCount(db.accessories.length,db.packages.length));renderAccList();renderPkgList();}
       });
-    }catch(err){showToast('导入失败: '+err.message,1);}
+    }catch(err){showToast(ADMIN_T[adminLang].errImportFail+': '+err.message,1);}
   };
   r.readAsText(f);ev.target.value='';
 }
@@ -553,22 +668,23 @@ function importDB(ev){
 
 /* ── Clear / reset DB ── */
 async function clearDB(){
-  if(!confirm('确定要清除所有数据并恢复默认？此操作不可撤销！'))return;
+  if(!confirm(ADMIN_T[adminLang].confirmReset))return;
   try{
     var idb=await openIDB();
     await new Promise(function(resolve,reject){
       var req=idb.transaction(IDB_STORE,'readwrite').objectStore(IDB_STORE).delete(IDB_KEY);
       req.onsuccess=resolve; req.onerror=function(e){reject(e.target.error);};
     });
-    showToast('已重置为默认数据');
+    showToast(ADMIN_T[adminLang].toastReset);
     await renderAccList();
     renderPkgList();
-  }catch(e){showToast('重置失败: '+e.message,1);}
+  }catch(e){showToast(ADMIN_T[adminLang].errResetFail+': '+e.message,1);}
 }
 
 /* ── Init ── */
 (async function(){
   try {
+    setAdminLang(adminLang);
     await migrateLegacyData();
     await renderAccList();
   } catch(e) { console.error('Init error:', e); }

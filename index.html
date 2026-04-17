@@ -644,6 +644,7 @@ let lang = 'zh';
 
 function setLang(l) {
   lang = l;
+  try { localStorage.setItem('pvstar_lang', l); } catch(e) {}
   document.getElementById('btnZh').classList.toggle('active', l === 'zh');
   document.getElementById('btnEn').classList.toggle('active', l === 'en');
   document.documentElement.lang = l === 'zh' ? 'zh-CN' : 'en';
@@ -1033,7 +1034,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('logoImg').src = LOGO_SRC;
   buildRadios();
   buildPanelSelector();
-  setLang('zh');
+  setLang(localStorage.getItem('pvstar_lang') || 'zh');
   updateFormulaDisplay('clenergy');
   updateResultCardsVisibility('clenergy');
   updateCardImages('clenergy');
