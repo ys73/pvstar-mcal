@@ -561,6 +561,7 @@ const T = {
       '穿刺垫片、线夹、避雷线夹已包含在配件包内',
       '每排组件超过12片时导轨过长，为避免热胀冷缩变形，建议断开另起一排'
     ],
+    adminBtn: '&#9881; 后台管理',
     toastSwitch: '请先点击「清空」删除当前所有场景，再切换安装系统品牌',
     panelSizeLabel: '光伏板规格',
     orientPortrait: '竖装',
@@ -661,7 +662,7 @@ function setLang(l) {
   updateFormulaDisplay(currentBrand);
   updateResultCardsVisibility(currentBrand);
   buildPanelSelector();
-  const ab = document.getElementById('adminBtn'); if(ab) ab.textContent = T[l].adminBtn;
+  const ab = document.getElementById('adminBtn'); if(ab) ab.innerHTML = T[l] && T[l].adminBtn ? T[l].adminBtn : (l==='zh'?'&#9881; 后台管理':'&#9881; Admin');
   const rl = document.getElementById('pvstarRoundupBtnLabel'); if(rl) rl.textContent = lang==='zh' ? '计算销售包装数量' : 'Round Up Sales Units';
 }
 
