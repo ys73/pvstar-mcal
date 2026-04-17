@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PVSTAR 后台数据管理</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100vh}
+.topbar{position:sticky;top:0;z-index:200;background:#000;color:#fff;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.topbar-title{font-size:14px;font-weight:500;letter-spacing:.06em;}
+.topbar-actions{display:flex;gap:8px;align-items:center;}
+.sidebar{position:fixed;top:56px;left:0;bottom:0;width:220px;background:#fff;border-right:1px solid #e5e5e5;overflow-y:auto;padding:16px 0;}
+.sidebar-item{padding:10px 24px;cursor:pointer;font-size:13px;border-left:3px solid transparent;transition:all .15s;}
+.sidebar-item:hover{background:#f5f5f5;}
+.sidebar-item.active{border-left-color:#000;font-weight:500;background:#f9f9f9;}
+.sidebar-sep{height:1px;background:#e5e5e5;margin:8px 0;}
+.main{margin-left:220px;padding:28px 32px;min-height:calc(100vh - 56px);}
+.btn{padding:8px 18px;border:1px solid #000;background:#fff;color:#000;font-size:13px;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;}
+.btn:hover{background:#000;color:#fff;}
+.btn-primary{background:#000;color:#fff;}
+.btn-primary:hover{background:#333;}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.btn-danger{border-color:#c00;color:#c00;}
+.btn-danger:hover{background:#c00;color:#fff;}
+.btn-icon{width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:13px;transition:all .15s;}
+.btn-icon:hover{border-color:#000;}
+.card{background:#fff;border:1px solid #e5e5e5;padding:18px 20px;margin-bottom:12px;position:relative;transition:border-color .15s;}
+.card:hover{border-color:#ccc;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap;}
+.card-title{font-size:14px;font-weight:500;}
+.card-actions{display:flex;gap:6px;flex-shrink:0;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:11px;color:#666;margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
+.field input,.field textarea,.field select{width:100%;padding:8px 10px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;background:#fff;transition:border-color .15s;}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:#000;}
+.field textarea{resize:vertical;min-height:60px;}
+.field-row{display:flex;gap:12px;}
+.field-row .field{flex:1;margin-bottom:0;}
+.img-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.img-thumb{position:relative;width:72px;height:60px;border:1px solid #e5e5e5;overflow:hidden;}
+.img-thumb img{width:100%;height:100%;object-fit:contain;}
+.img-thumb .del-img{position:absolute;top:1px;right:1px;width:15px;height:15px;background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;}
+.content-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:13px;}
+.content-row:last-child{border-bottom:none;}
+.content-row .qty-inp{width:60px;padding:3px 6px;border:1px solid #ddd;font-size:13px;text-align:center;font-family:'Inter',sans-serif;}
+.content-row .qty-inp:focus{outline:none;border-color:#000;}
+.attach-item{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;border-bottom:1px solid #f5f5f5;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;overflow-y:auto;}
+.modal-overlay.open{display:block;}
+.modal-box{background:#fff;max-width:700px;margin:40px auto;padding:28px;position:relative;}
+.modal-title{font-size:1.15rem;font-weight:300;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid #e5e5e5;}
+.modal-close{position:absolute;top:14px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:#888;}
+.modal-close:hover{color:#000;}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid #e5e5e5;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;}
+.section-title{font-size:1.05rem;font-weight:300;}
+.section-sub{font-size:12px;color:#888;margin-top:2px;}
+.empty{text-align:center;padding:48px;color:#bbb;font-size:13px;}
+#toast{position:fixed;bottom:22px;right:22px;background:#000;color:#fff;padding:10px 20px;font-size:13px;opacity:0;transition:opacity .3s;z-index:9999;pointer-events:none;}
+#toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="topbar">
+  <span class="topbar-title">&#9881; PVSTAR 后台数据管理</span>
+  <div class="topbar-actions">
+    <button class="btn btn-sm" style="border-color:#555;color:#ccc;background:transparent;" onclick="exportDB()">&#8595; 导出 JSON</button>
+    <label class="btn btn-sm" style="border-color:#555;color:#ccc;background:transparent;cursor:pointer;">
+      &#8593; 导入 JSON <input type="file" accept=".json" style="display:none;" onchange="importDB(event)">
+    </label>
+    <button class="btn btn-sm btn-primary" onclick="window.open('index.html','_blank')" style="border-color:#fff;">&#8592; 返回计算器</button>
+  </div>
+</div>
+
+<div class="sidebar">
+  <div class="sidebar-item active" id="tab-acc" onclick="showTab('acc')">&#128269; 单个配件</div>
+  <div class="sidebar-item" id="tab-pkg" onclick="showTab('pkg')">&#128230; 配件包</div>
+  <div class="sidebar-sep"></div>
+  <div class="sidebar-item" id="tab-io" onclick="showTab('io')" style="color:#888;">&#8645; 导入/导出</div>
+</div>
+
+<div class="main">
+  <!-- Accessories -->
+  <div id="panel-acc">
+    <div class="section-header">
+      <div><div class="section-title">单个配件</div><div class="section-sub">料号、图片、重量、价格、附件等</div></div>
+      <button class="btn btn-primary" onclick="openAccModal()">+ 新增配件</button>
+    </div>
+    <div id="acc-list"></div>
+  </div>
+
+  <!-- Packages -->
+  <div id="panel-pkg" style="display:none;">
+    <div class="section-header">
+      <div><div class="section-title">配件包</div><div class="section-sub">包含包内配件构成、规格和价格</div></div>
+      <button class="btn btn-primary" onclick="openPkgModal()">+ 新增配件包</button>
+    </div>
+    <div id="pkg-list"></div>
+  </div>
+
+  <!-- I/O -->
+  <div id="panel-io" style="display:none;">
+    <div class="section-title" style="margin-bottom:16px;">数据导入 / 导出</div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-title" style="margin-bottom:10px;">导出数据库</div>
+      <p style="font-size:13px;color:#555;margin-bottom:12px;">将当前所有配件和配件包数据导出为 pvstar_data.json 文件。</p>
+      <button class="btn btn-primary" onclick="exportDB()">&#8595; 导出 pvstar_data.json</button>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:10px;">导入数据库</div>
+      <p style="font-size:13px;color:#555;margin-bottom:12px;">从 JSON 文件恢复数据（将覆盖当前数据，建议先备份）。</p>
+      <label class="btn" style="cursor:pointer;display:inline-block;">&#8593; 选择文件导入 <input type="file" accept=".json" style="display:none;" onchange="importDB(event)"></label>
+    </div>
+  </div>
+</div>
+
+<!-- Accessory Modal -->
+<div id="accModal" class="modal-overlay" onclick="if(event.target===this)closeAccModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeAccModal()">&times;</button>
+    <div class="modal-title" id="accModalTitle">新增配件</div>
+    <div class="field-row">
+      <div class="field"><label>料号 Part No.</label><input id="acc-partNo" placeholder="留空则不显示"></div>
+      <div class="field"><label>名称（中文）*</label><input id="acc-nameZh" placeholder="例：导轨"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Name (EN)</label><input id="acc-nameEn" placeholder="e.g. Rail"></div>
+      <div class="field"><label>重量 Weight (kg)</label><input id="acc-weight" type="number" min="0" step="0.001" placeholder="0.000"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>价格 Price (€)</label><input id="acc-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="field"><label>产品描述 Description</label><textarea id="acc-desc" placeholder="规格、材质、用途等..."></textarea></div>
+    <div class="field">
+      <label>图片 Images</label>
+      <label class="btn btn-sm" style="cursor:pointer;display:inline-block;margin-bottom:6px;">+ 上传图片 <input type="file" accept="image/*" multiple style="display:none;" onchange="uploadAccImages(event)"></label>
+      <div class="img-list" id="acc-images"></div>
+    </div>
+    <div class="field">
+      <label>附件 Attachments（说明书、安装视频链接等）</label>
+      <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <input id="acc-aname" placeholder="名称" style="flex:1;padding:6px 8px;border:1px solid #ddd;font-size:12px;font-family:'Inter',sans-serif;">
+        <input id="acc-aurl"  placeholder="URL 链接" style="flex:2;padding:6px 8px;border:1px solid #ddd;font-size:12px;font-family:'Inter',sans-serif;">
+        <button class="btn btn-sm" onclick="addAccAttach()">添加</button>
+      </div>
+      <div id="acc-alist"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeAccModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveAcc()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Package Modal -->
+<div id="pkgModal" class="modal-overlay" onclick="if(event.target===this)closePkgModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closePkgModal()">&times;</button>
+    <div class="modal-title" id="pkgModalTitle">新增配件包</div>
+    <div class="field-row">
+      <div class="field"><label>SKU / 料号</label><input id="pkg-sku" placeholder="例：8061010000018"></div>
+      <div class="field"><label>名称（中文）*</label><input id="pkg-nameZh" placeholder="例：导轨包"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Name (EN)</label><input id="pkg-nameEn" placeholder="e.g. Rail Pack"></div>
+      <div class="field"><label>包装数量 Pack Size</label><input id="pkg-packSize" type="number" min="1" step="1" placeholder="例：4"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>重量 Weight (kg/pack)</label><input id="pkg-weight" type="number" min="0" step="0.001" placeholder="0.000"></div>
+      <div class="field"><label>尺寸 Dimensions (cm)</label><input id="pkg-dimensions" placeholder="例：120×30×30"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>价格 Price (€/pack)</label><input id="pkg-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="field">
+        <label>计算来源 Calc From</label>
+        <select id="pkg-calcFrom">
+          <option value="rails">rails（导轨数量）</option>
+          <option value="hooks">hooks（挂钩数量）</option>
+          <option value="endClamps">endClamps（边压块数量）</option>
+          <option value="midClamps">midClamps（中压块数量）</option>
+          <option value="railConnectors">railConnectors（连接件数量）</option>
+          <option value="leftEndCaps">leftEndCaps（端盖对数）</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>产品描述</label><textarea id="pkg-desc" placeholder="配件包说明..."></textarea></div>
+    <div class="field">
+      <label>图片 Images</label>
+      <label class="btn btn-sm" style="cursor:pointer;display:inline-block;margin-bottom:6px;">+ 上传图片 <input type="file" accept="image/*" multiple style="display:none;" onchange="uploadPkgImages(event)"></label>
+      <div class="img-list" id="pkg-images"></div>
+    </div>
+    <div class="field">
+      <label>包内配件 Contents</label>
+      <div id="pkg-contents-editor"></div>
+      <button class="btn btn-sm" style="margin-top:6px;" onclick="addContentRow()">+ 添加配件</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closePkgModal()">取消</button>
+      <button class="btn btn-primary" onclick="savePkg()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Accessory detail popup -->
+<div id="accDetail" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.5);overflow-y:auto;" onclick="if(event.target===this)closeAccDetail()">
+  <div style="max-width:440px;margin:60px auto;background:#fff;padding:24px;position:relative;">
+    <button onclick="closeAccDetail()" style="position:absolute;top:12px;right:12px;border:none;background:none;font-size:20px;cursor:pointer;color:#888;">&times;</button>
+    <div id="accDetailBody"></div>
+  </div>
+</div>
+
+<script>
+const DB_KEY = 'pvstar_db';
+
+const DEFAULT_DB = {
+  accessories: [
+    {id:'acc_rail',      partNo:'',nameZh:'导轨',      nameEn:'Rail',          imgKey:'p_rail',       images:[],weight:0,price:0,description:'',attachments:[]},
+    {id:'acc_hook',      partNo:'',nameZh:'挂钩',      nameEn:'Hook',          imgKey:'p_hook',       images:[],weight:0,price:0,description:'',attachments:[]},
+    {id:'acc_end_clamp', partNo:'',nameZh:'边压块',    nameEn:'End Clamp',     imgKey:'p_end_clamp',  images:[],weight:0,price:0,description:'',attachments:[]},
+    {id:'acc_mid_clamp', partNo:'',nameZh:'中压块',    nameEn:'Mid Clamp',     imgKey:'p_inter_clamp',images:[],weight:0,price:0,description:'',attachments:[]},
+    {id:'acc_rail_conn', partNo:'',nameZh:'导轨连接件',nameEn:'Rail Connector',imgKey:'p_rail_conn',  images:[],weight:0,price:0,description:'',attachments:[]},
+    {id:'acc_rail_cap',  partNo:'',nameZh:'导轨端盖',  nameEn:'Rail End Cap',  imgKey:'p_rail_cap',   images:[],weight:0,price:0,description:'',attachments:[]},
+    {id:'acc_washer',    partNo:'',nameZh:'穿刺垫片',  nameEn:'Grounding Clip',imgKey:'pp_washer',    images:[],weight:0,price:0,description:'',attachments:[]},
+    {id:'acc_cable_clip',partNo:'',nameZh:'线夹',      nameEn:'Cable Clip',    imgKey:'pp_cable_clip',images:[],weight:0,price:0,description:'',attachments:[]},
+    {id:'acc_grnd_lug',  partNo:'',nameZh:'接地块',    nameEn:'Grounding Lug', imgKey:'pp_grnd_lug',  images:[],weight:0,price:0,description:'',attachments:[]},
+  ],
+  packages: [
+    {id:'pkg_rail',     sku:'8061010000018',nameZh:'导轨包',  nameEn:'Rail Pack',     imgKey:'pp_rail',     images:[],weight:0,dimensions:'',price:0,description:'',packSize:4, calcFrom:'rails',        contents:[{accessoryId:'acc_rail',     qty:4}]},
+    {id:'pkg_hook',     sku:'8061020000007',nameZh:'挂钩包',  nameEn:'Hook Pack',     imgKey:'pp_hook',     images:[],weight:0,dimensions:'',price:0,description:'',packSize:20,calcFrom:'hooks',        contents:[{accessoryId:'acc_hook',     qty:20}]},
+    {id:'pkg_end_clamp',sku:'8061030000013',nameZh:'边压块包',nameEn:'End Clamp Pack',imgKey:'pp_end_clamp',images:[],weight:0,dimensions:'',price:0,description:'',packSize:20,calcFrom:'endClamps',    contents:[{accessoryId:'acc_end_clamp',qty:20},{accessoryId:'acc_washer',   qty:20}]},
+    {id:'pkg_mid_clamp',sku:'8061040000013',nameZh:'中压块包',nameEn:'Mid Clamp Pack',imgKey:'pp_mid_clamp',images:[],weight:0,dimensions:'',price:0,description:'',packSize:20,calcFrom:'midClamps',    contents:[{accessoryId:'acc_mid_clamp',qty:20},{accessoryId:'acc_washer',   qty:20},{accessoryId:'acc_cable_clip',qty:20}]},
+    {id:'pkg_connector',sku:'8061050000017',nameZh:'连接件包',nameEn:'Connector Pack',imgKey:'pp_connector',images:[],weight:0,dimensions:'',price:0,description:'',packSize:10,calcFrom:'railConnectors',contents:[{accessoryId:'acc_rail_conn',qty:10}]},
+    {id:'pkg_accessory',sku:'8061080000008',nameZh:'配件包',  nameEn:'Accessory Pack',imgKey:'pp_accessory',images:[],weight:0,dimensions:'',price:0,description:'',packSize:10,calcFrom:'leftEndCaps',  contents:[{accessoryId:'acc_rail_cap', qty:10},{accessoryId:'acc_grnd_lug',  qty:6}]},
+  ]
+};
+
+function loadDB(){try{const r=localStorage.getItem(DB_KEY);if(r){const d=JSON.parse(r);if(d&&d.accessories)return d;}}catch(e){}return JSON.parse(JSON.stringify(DEFAULT_DB));}
+function saveDB(db){try{localStorage.setItem(DB_KEY,JSON.stringify(db));return true;}catch(e){showToast('保存失败: '+e.message,1);return false;}}
+function uid(){return '_'+Math.random().toString(36).substr(2,9);}
+
+let _toastT;
+function showToast(msg,err){const el=document.getElementById('toast');el.textContent=msg;el.style.background=err?'#c00':'#000';el.classList.add('show');clearTimeout(_toastT);_toastT=setTimeout(()=>el.classList.remove('show'),3000);}
+
+function showTab(name){
+  ['acc','pkg','io'].forEach(t=>{
+    document.getElementById('panel-'+t).style.display=t===name?'':'none';
+    document.getElementById('tab-'+t).classList.toggle('active',t===name);
+  });
+  if(name==='acc')renderAccList();
+  if(name==='pkg')renderPkgList();
+}
+
+/* ── Accessories ── */
+let _eAccId=null,_accImgs=[],_accAtts=[];
+
+function renderAccList(){
+  const db=loadDB(),el=document.getElementById('acc-list');
+  if(!db.accessories.length){el.innerHTML='<div class="empty">暂无配件，点击"新增配件"添加</div>';return;}
+  el.innerHTML=db.accessories.map(a=>{
+    const img=a.images&&a.images.length?'<img src="'+a.images[0]+'" style="width:56px;height:48px;object-fit:contain;border:1px solid #e5e5e5;margin-right:12px;flex-shrink:0;">':'<div style="width:56px;height:48px;background:#f5f5f5;margin-right:12px;flex-shrink:0;border:1px solid #f0f0f0;"></div>';
+    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+a.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+a.nameEn+'</span>'+(a.partNo?'<div style="font-size:11px;color:#aaa;">料号: '+a.partNo+'</div>':'')+'</div></div><div class="card-actions"><button class="btn btn-sm" onclick="openAccModal(\''+a.id+'\')">编辑</button><button class="btn btn-sm btn-danger" onclick="deleteAcc(\''+a.id+'\')">删除</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;"><span>重量: <b>'+(a.weight||'—')+'</b> kg</span><span>价格: <b>'+(a.price>0?'€'+Number(a.price).toFixed(2):'—')+'</b></span>'+(a.description?'<span style="color:#aaa;">'+a.description.substring(0,80)+'</span>':'')+'</div>'+(a.attachments&&a.attachments.length?'<div style="margin-top:6px;">'+a.attachments.map(at=>'<a href="'+at.url+'" target="_blank" style="font-size:11px;color:#555;margin-right:8px;">&#128206; '+at.name+'</a>').join('')+'</div>':'')+'</div>';
+  }).join('');
+}
+
+function openAccModal(id){
+  _eAccId=id||null;_accImgs=[];_accAtts=[];
+  const db=loadDB(),a=id?db.accessories.find(x=>x.id===id):null;
+  document.getElementById('accModalTitle').textContent=id?'编辑配件':'新增配件';
+  document.getElementById('acc-partNo').value=a?(a.partNo||''):'';
+  document.getElementById('acc-nameZh').value=a?(a.nameZh||''):'';
+  document.getElementById('acc-nameEn').value=a?(a.nameEn||''):'';
+  document.getElementById('acc-weight').value=a?(a.weight||''):'';
+  document.getElementById('acc-price').value=a?(a.price||''):'';
+  document.getElementById('acc-desc').value=a?(a.description||''):'';
+  _accImgs=a&&a.images?[...a.images]:[];
+  _accAtts=a&&a.attachments?[...a.attachments]:[];
+  renderAccImgs();renderAccAtts();
+  document.getElementById('accModal').classList.add('open');
+}
+function closeAccModal(){document.getElementById('accModal').classList.remove('open');}
+
+function uploadAccImages(ev){Array.from(ev.target.files).forEach(f=>{const r=new FileReader();r.onload=e=>{_accImgs.push(e.target.result);renderAccImgs();};r.readAsDataURL(f);});ev.target.value='';}
+function renderAccImgs(){document.getElementById('acc-images').innerHTML=_accImgs.map((s,i)=>'<div class="img-thumb"><img src="'+s+'"><button class="del-img" onclick="removeAccImg('+i+')">x</button></div>').join('');}
+function removeAccImg(i){_accImgs.splice(i,1);renderAccImgs();}
+function addAccAttach(){const n=document.getElementById('acc-aname').value.trim(),u=document.getElementById('acc-aurl').value.trim();if(!n&&!u)return;_accAtts.push({name:n||u,url:u||n});document.getElementById('acc-aname').value='';document.getElementById('acc-aurl').value='';renderAccAtts();}
+function renderAccAtts(){document.getElementById('acc-alist').innerHTML=_accAtts.map((a,i)=>'<div class="attach-item"><a href="'+a.url+'" target="_blank">'+a.name+'</a><button class="btn-icon" onclick="removeAccAtt('+i+')">x</button></div>').join('');}
+function removeAccAtt(i){_accAtts.splice(i,1);renderAccAtts();}
+
+function saveAcc(){
+  const db=loadDB(),nameZh=document.getElementById('acc-nameZh').value.trim();
+  if(!nameZh){showToast('请填写名称（中文）',1);return;}
+  const data={id:_eAccId||('acc_'+uid()),partNo:document.getElementById('acc-partNo').value.trim(),nameZh,nameEn:document.getElementById('acc-nameEn').value.trim(),imgKey:'',images:_accImgs,weight:parseFloat(document.getElementById('acc-weight').value)||0,price:parseFloat(document.getElementById('acc-price').value)||0,description:document.getElementById('acc-desc').value.trim(),attachments:_accAtts};
+  if(_eAccId){const idx=db.accessories.findIndex(a=>a.id===_eAccId);if(idx!==-1){data.imgKey=db.accessories[idx].imgKey||'';db.accessories[idx]=data;}}
+  else db.accessories.push(data);
+  if(saveDB(db)){showToast(_eAccId?'配件已更新':'配件已添加');closeAccModal();renderAccList();}
+}
+function deleteAcc(id){if(!confirm('确定删除？'))return;const db=loadDB();db.accessories=db.accessories.filter(a=>a.id!==id);if(saveDB(db)){showToast('已删除');renderAccList();}}
+
+/* ── Packages ── */
+let _ePkgId=null,_pkgImgs=[],_pkgContents=[];
+
+function renderPkgList(){
+  const db=loadDB(),el=document.getElementById('pkg-list');
+  if(!db.packages.length){el.innerHTML='<div class="empty">暂无配件包，点击"新增配件包"添加</div>';return;}
+  el.innerHTML=db.packages.map(p=>{
+    const img=p.images&&p.images.length?'<img src="'+p.images[0]+'" style="width:56px;height:48px;object-fit:contain;border:1px solid #e5e5e5;margin-right:12px;flex-shrink:0;">':'<div style="width:56px;height:48px;background:#f5f5f5;margin-right:12px;flex-shrink:0;border:1px solid #f0f0f0;"></div>';
+    const contents=(p.contents||[]).map(c=>{const a=db.accessories.find(x=>x.id===c.accessoryId);const n=a?(a.nameZh+' / '+a.nameEn):c.accessoryId;return '<span style="display:inline-flex;align-items:center;gap:3px;background:#f5f5f5;padding:2px 7px;margin:2px;font-size:11px;cursor:pointer;" onclick="showAccDetail(\''+c.accessoryId+'\')">'+n+' &times; '+c.qty+'</span>';}).join('');
+    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+p.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+p.nameEn+'</span><div style="font-size:11px;color:#aaa;">SKU: '+(p.sku||'—')+' | '+p.packSize+' pcs/pack | from: '+p.calcFrom+'</div></div></div><div class="card-actions"><button class="btn btn-sm" onclick="openPkgModal(\''+p.id+'\')">编辑</button><button class="btn btn-sm btn-danger" onclick="deletePkg(\''+p.id+'\')">删除</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;margin-bottom:8px;"><span>重量: <b>'+(p.weight||'—')+'</b> kg/pack</span><span>尺寸: <b>'+(p.dimensions||'—')+'</b></span><span>价格: <b>'+(p.price>0?'€'+Number(p.price).toFixed(2):'—')+'</b>/pack</span></div>'+(contents?'<div style="font-size:11px;color:#888;margin-bottom:4px;font-weight:500;">包内配件：</div>'+contents:'')+'</div>';
+  }).join('');
+}
+
+function openPkgModal(id){
+  _ePkgId=id||null;_pkgImgs=[];_pkgContents=[];
+  const db=loadDB(),p=id?db.packages.find(x=>x.id===id):null;
+  document.getElementById('pkgModalTitle').textContent=id?'编辑配件包':'新增配件包';
+  document.getElementById('pkg-sku').value=p?(p.sku||''):'';
+  document.getElementById('pkg-nameZh').value=p?(p.nameZh||''):'';
+  document.getElementById('pkg-nameEn').value=p?(p.nameEn||''):'';
+  document.getElementById('pkg-packSize').value=p?(p.packSize||''):'';
+  document.getElementById('pkg-weight').value=p?(p.weight||''):'';
+  document.getElementById('pkg-dimensions').value=p?(p.dimensions||''):'';
+  document.getElementById('pkg-price').value=p?(p.price||''):'';
+  document.getElementById('pkg-desc').value=p?(p.description||''):'';
+  document.getElementById('pkg-calcFrom').value=p?(p.calcFrom||'rails'):'rails';
+  _pkgImgs=p&&p.images?[...p.images]:[];
+  _pkgContents=p&&p.contents?p.contents.map(c=>({...c})):[];
+  renderPkgImgs();renderContentsEditor(db);
+  document.getElementById('pkgModal').classList.add('open');
+}
+function closePkgModal(){document.getElementById('pkgModal').classList.remove('open');}
+
+function uploadPkgImages(ev){Array.from(ev.target.files).forEach(f=>{const r=new FileReader();r.onload=e=>{_pkgImgs.push(e.target.result);renderPkgImgs();};r.readAsDataURL(f);});ev.target.value='';}
+function renderPkgImgs(){document.getElementById('pkg-images').innerHTML=_pkgImgs.map((s,i)=>'<div class="img-thumb"><img src="'+s+'"><button class="del-img" onclick="removePkgImg('+i+')">x</button></div>').join('');}
+function removePkgImg(i){_pkgImgs.splice(i,1);renderPkgImgs();}
+
+function renderContentsEditor(db){
+  if(!db)db=loadDB();
+  const el=document.getElementById('pkg-contents-editor');
+  el.innerHTML=_pkgContents.map((c,i)=>{
+    const opts=db.accessories.map(a=>'<option value="'+a.id+'"'+(a.id===c.accessoryId?' selected':'')+'>'+a.nameZh+' / '+a.nameEn+'</option>').join('');
+    return '<div class="content-row"><select onchange="_pkgContents['+i+'].accessoryId=this.value" style="flex:1;padding:4px 6px;border:1px solid #ddd;font-size:12px;font-family:inherit;">'+opts+'</select><span style="font-size:12px;color:#666;white-space:nowrap;">&times; 数量</span><input type="number" class="qty-inp" min="1" value="'+(c.qty||1)+'" oninput="_pkgContents['+i+'].qty=Number(this.value)||1"><button class="btn-icon" onclick="removeContentRow('+i+')">x</button></div>';
+  }).join('');
+}
+function addContentRow(){const db=loadDB();const fa=db.accessories[0];_pkgContents.push({accessoryId:fa?fa.id:'',qty:1});renderContentsEditor(db);}
+function removeContentRow(i){_pkgContents.splice(i,1);renderContentsEditor();}
+
+function savePkg(){
+  const db=loadDB(),nameZh=document.getElementById('pkg-nameZh').value.trim();
+  if(!nameZh){showToast('请填写名称（中文）',1);return;}
+  const data={id:_ePkgId||('pkg_'+uid()),sku:document.getElementById('pkg-sku').value.trim(),nameZh,nameEn:document.getElementById('pkg-nameEn').value.trim(),imgKey:'',images:_pkgImgs,weight:parseFloat(document.getElementById('pkg-weight').value)||0,dimensions:document.getElementById('pkg-dimensions').value.trim(),price:parseFloat(document.getElementById('pkg-price').value)||0,description:document.getElementById('pkg-desc').value.trim(),packSize:parseInt(document.getElementById('pkg-packSize').value)||1,calcFrom:document.getElementById('pkg-calcFrom').value,contents:_pkgContents.filter(c=>c.accessoryId)};
+  if(_ePkgId){const idx=db.packages.findIndex(p=>p.id===_ePkgId);if(idx!==-1){data.imgKey=db.packages[idx].imgKey||'';db.packages[idx]=data;}}
+  else db.packages.push(data);
+  if(saveDB(db)){showToast(_ePkgId?'配件包已更新':'配件包已添加');closePkgModal();renderPkgList();}
+}
+function deletePkg(id){if(!confirm('确定删除？'))return;const db=loadDB();db.packages=db.packages.filter(p=>p.id!==id);if(saveDB(db)){showToast('已删除');renderPkgList();}}
+
+/* ── Accessory detail ── */
+function showAccDetail(id){
+  if(!id)return;const db=loadDB(),a=db.accessories.find(x=>x.id===id);if(!a)return;
+  const imgs=a.images&&a.images.length?a.images.map(s=>'<img src="'+s+'" style="width:76px;height:62px;object-fit:contain;border:1px solid #e5e5e5;margin:2px;">').join(''):'<span style="color:#bbb;font-size:12px;">暂无图片</span>';
+  const atts=a.attachments&&a.attachments.length?a.attachments.map(at=>'<a href="'+at.url+'" target="_blank" style="display:block;font-size:12px;color:#000;margin-bottom:3px;">&#128206; '+at.name+'</a>').join(''):'';
+  document.getElementById('accDetailBody').innerHTML='<h3 style="font-size:1rem;font-weight:500;margin-bottom:12px;">'+a.nameZh+' / '+a.nameEn+'</h3><div style="margin-bottom:10px;">'+imgs+'</div><div style="font-size:13px;line-height:1.8;color:#555;">'+(a.partNo?'<div><b>料号:</b> '+a.partNo+'</div>':'')+(a.weight?'<div><b>重量:</b> '+a.weight+' kg</div>':'')+(a.price>0?'<div><b>价格:</b> €'+Number(a.price).toFixed(2)+'</div>':'')+(a.description?'<div style="margin-top:6px;">'+a.description+'</div>':'')+'</div>'+(atts?'<div style="margin-top:8px;"><b style="font-size:11px;">附件：</b><br>'+atts+'</div>':'');
+  document.getElementById('accDetail').style.display='block';
+}
+function closeAccDetail(){document.getElementById('accDetail').style.display='none';}
+
+/* ── Import/Export ── */
+function exportDB(){
+  const db=loadDB();
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='pvstar_data.json';a.click();URL.revokeObjectURL(url);
+  showToast('已导出 pvstar_data.json');
+}
+function importDB(ev){
+  const f=ev.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{const db=JSON.parse(e.target.result);if(!db.accessories||!db.packages)throw new Error('格式错误');if(!confirm('导入将覆盖当前数据，确定？'))return;saveDB(db);showToast('导入成功: '+db.accessories.length+'配件, '+db.packages.length+'配件包');renderAccList();renderPkgList();}catch(err){showToast('导入失败: '+err.message,1);}
+  };
+  r.readAsText(f);ev.target.value='';
+}
+
+/* ── Init ── */
+(function(){if(!localStorage.getItem(DB_KEY))localStorage.setItem(DB_KEY,JSON.stringify(DEFAULT_DB));renderAccList();})();
+</script>
+</body>
+</html>
