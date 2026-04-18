@@ -205,10 +205,12 @@ body{font-family:'Inter',sans-serif;background:#FAF9F7;color:#1A1A1A;overflow-x:
     max-width:none !important; margin:0 !important;
     box-shadow:none !important; border-radius:0 !important; overflow:visible !important;
   }
-  body.printing-quote .no-print { display:none !important; }
+  body.printing-quote .no-print,
+  body.printing-quote #quoteModal > button { display:none !important; }
   .quote-tbl { page-break-inside:auto; width:100%; }
   .quote-tbl tr { page-break-inside:avoid; }
   #quote-bom-section { page-break-inside:auto; }
+  #quote-bom-section > div > div { page-break-inside:avoid; }
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1665,29 +1667,32 @@ function renderBomSection() {
   var el   = document.getElementById('quote-bom-section');
   if (!el) return;
   if (!bom.length) { el.style.display = 'none'; return; }
-  var th = function(t){ return '<th style="padding:7px 10px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap;">' + t + '</th>'; };
+
+  var cards = bom.map(function(b) {
+    var name   = isZh ? b.nameZh : b.nameEn;
+    var imgTag = b.imgSrc
+      ? '<img src="' + b.imgSrc + '" style="width:80px;height:60px;object-fit:contain;display:block;margin:0 auto 8px;">'
+      : '<div style="width:80px;height:60px;background:#f5f5f5;border-radius:4px;margin:0 auto 8px;"></div>';
+    var partNo = b.partNo
+      ? '<div style="font-size:10px;color:#aaa;font-family:monospace;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + b.partNo + '</div>'
+      : '';
+    var desc = b.desc
+      ? '<div style="font-size:10px;color:#777;margin-top:6px;line-height:1.4;text-align:left;">' + b.desc + '</div>'
+      : '';
+    return '<div style="border:1px solid #E8E4DF;padding:12px 10px;text-align:center;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.04);display:flex;flex-direction:column;align-items:center;">' +
+      imgTag +
+      '<div style="font-size:12px;font-weight:500;margin-bottom:2px;">' + name + '</div>' +
+      partNo +
+      '<div style="font-size:1.75rem;font-weight:300;line-height:1;color:#1a1a1a;">' + b.qty + '</div>' +
+      desc +
+    '</div>';
+  }).join('');
+
   var html =
-    '<div style="font-size:1rem;font-weight:500;margin-bottom:6px;">' + (isZh?'配件清单 / Bill of Materials':'Bill of Materials') + '</div>' +
-    '<div style="font-size:11px;color:#999;margin-bottom:14px;">Date: ' + date + '&nbsp;&nbsp;|&nbsp;&nbsp;Panels: ' + _quoteTotalPanels + '</div>' +
-    '<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:Inter,Arial,sans-serif;">' +
-    '<thead><tr style="background:#1a1a1a;color:#fff;">' +
-    th(isZh?'图片':'IMG') + th(isZh?'名称':'Name') + th(isZh?'料号':'Part No.') +
-    th(isZh?'数量':'Qty') + th(isZh?'描述':'Description') +
-    '</tr></thead><tbody>';
-  bom.forEach(function(b, i) {
-    var bg  = i % 2 === 0 ? '#fff' : '#faf9f7';
-    var img = b.imgSrc ? '<img src="' + b.imgSrc + '" style="width:40px;height:32px;object-fit:contain;display:block;">' : '';
-    var td  = function(t, s){ return '<td style="padding:7px 10px;border-bottom:1px solid #e5e5e5;vertical-align:middle;' + (s||'') + '">' + t + '</td>'; };
-    html +=
-      '<tr style="background:' + bg + ';">' +
-      td(img) +
-      td('<span style="font-weight:500;">' + (isZh ? b.nameZh : b.nameEn) + '</span>') +
-      td('<span style="font-family:monospace;font-size:11px;color:#888;">' + (b.partNo || '—') + '</span>') +
-      td(b.qty, 'text-align:center;') +
-      td('<span style="color:#555;font-size:11px;">' + (b.desc || '') + '</span>') +
-      '</tr>';
-  });
-  html += '</tbody></table>';
+    '<div style="font-size:1rem;font-weight:500;margin-bottom:6px;">' + (isZh ? '配件清单 / Bill of Materials' : 'Bill of Materials') + '</div>' +
+    '<div style="font-size:11px;color:#999;margin-bottom:16px;">Date: ' + date + '&nbsp;&nbsp;|&nbsp;&nbsp;Panels: ' + _quoteTotalPanels + '</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;">' + cards + '</div>';
+
   el.innerHTML = html;
   el.style.display = 'block';
 }
