@@ -196,7 +196,7 @@ body{font-family:'Inter',sans-serif;background:#FAF9F7;color:#1A1A1A;overflow-x:
 .disc-input{width:52px;padding:3px 6px;border:1px solid #ccc;font-size:12px;text-align:center;font-family:"Inter",sans-serif;}
 .disc-input:focus{outline:none;border-color:#000;}
 @media print {
-  body.printing-quote > *:not(#quoteModal) { display:none !important; }
+  body.printing-quote > *:not(#quoteModal):not(#print-bom-page) { display:none !important; }
   body.printing-quote #quoteModal {
     position:static !important; background:white !important;
     overflow:visible !important; display:block !important; backdrop-filter:none !important;
@@ -206,6 +206,10 @@ body{font-family:'Inter',sans-serif;background:#FAF9F7;color:#1A1A1A;overflow-x:
     box-shadow:none !important; border-radius:0 !important; overflow:visible !important;
   }
   body.printing-quote .no-print { display:none !important; }
+  body.printing-quote #print-bom-page {
+    display:block !important;
+    page-break-before:always;
+  }
   .quote-tbl { page-break-inside:auto; width:100%; }
   .quote-tbl tr { page-break-inside:avoid; }
 }
@@ -1405,6 +1409,11 @@ function closeRoundupModal() {
   </div>
 </div>
 
+<!-- ── BOM print page (hidden, shown only via window.print()) ── -->
+<div id="print-bom-page" style="display:none;">
+  <div id="print-bom-inner"></div>
+</div>
+
 <!-- ── Quote Modal ── -->
 <div id="quoteModal" style="display:none;position:fixed;inset:0;z-index:9996;background:rgba(0,0,0,.45);overflow-y:auto;backdrop-filter:blur(2px);">
   <div style="max-width:1000px;margin:32px auto 60px;background:#fff;position:relative;font-family:'Inter',sans-serif;box-shadow:0 20px 60px rgba(0,0,0,.2);border-radius:12px;overflow:hidden;">
@@ -1436,7 +1445,6 @@ function closeRoundupModal() {
             <tr>
               <th id="qh-item">料号 / 名称</th>
               <th id="qh-img" style="text-align:center;">图片</th>
-              <th id="qh-qty" style="text-align:center;">数量</th>
               <th id="qh-wt" style="text-align:right;">重量<br>(kg)</th>
               <th id="qh-unit">销售单位</th>
               <th id="qh-disc" style="text-align:center;">折扣率</th>
@@ -1510,7 +1518,7 @@ function renderQuoteTable() {
   let totalNet = 0, totalWeight = 0;
 
   // Update bilingual headers
-  var hdr = { item: isZh?'料号 / 名称':'ITEM', img: isZh?'图片':'IMAGE', qty: isZh?'数量':'QTY',
+  var hdr = { item: isZh?'料号 / 名称':'ITEM', img: isZh?'图片':'IMAGE',
               wt: isZh?'重量 (kg)':'WEIGHT (kg)', unit: isZh?'销售单位':'SALES UNIT',
               disc: isZh?'折扣率':'DISC%', price: isZh?'单价 (€)':'UNIT (€)', sub: isZh?'小计 (€)':'SUBTOTAL (€)' };
   Object.keys(hdr).forEach(function(k){ var el=document.getElementById('qh-'+k); if(el) el.innerHTML=hdr[k]; });
@@ -1530,7 +1538,6 @@ function renderQuoteTable() {
     var name      = isZh ? p.nameZh : p.nameEn;
     var unitLabel = isZh ? (p.unitZh||'个/包') : (p.unitEn||'pcs/pack');
     var packSz    = p.packSize || 1;
-    var totalQty  = p.count * packSz;
     var salesUnit = p.count + ' \u00d7 (' + packSz + '\u00a0' + unitLabel + ')';
     var unitP     = p.price || 0;
     var disc      = (_itemDiscs[p.sku] !== undefined) ? _itemDiscs[p.sku] : 0;
@@ -1543,9 +1550,8 @@ function renderQuoteTable() {
     return '<tr>' +
       '<td><div style="font-size:10px;color:#888;font-family:monospace;">' + p.sku + '</div><div style="font-weight:500;font-size:13px;">' + name + '</div></td>' +
       '<td style="text-align:center;padding:6px 4px;">' + imgTag + '</td>' +
-      '<td style="text-align:center;">' + totalQty + '</td>' +
       '<td style="text-align:right;">' + (wt > 0 ? wt.toFixed(2) : '—') + '</td>' +
-      '<td style="font-size:12px;color:#555;">' + salesUnit + '</td>' +
+      '<td>' + salesUnit + '</td>' +
       '<td style="text-align:center;"><input type="number" class="disc-input" min="0" max="100" step="1" value="' + disc + '" oninput="setItemDisc(\'' + p.sku + '\', this.value)"> %</td>' +
       '<td style="text-align:right;">' + (unitP > 0 ? unitP.toFixed(3) : '—') + '</td>' +
       '<td style="text-align:right;">' + (unitP > 0 ? subtotal.toFixed(2) : '—') + '</td>' +
@@ -1555,7 +1561,7 @@ function renderQuoteTable() {
   var totalAfterProj = totalNet * (1 - projDisc / 100);
   var perPanel       = (_quoteTotalPanels > 0 && totalAfterProj > 0) ? totalAfterProj / _quoteTotalPanels : 0;
   var wtStr          = totalWeight > 0 ? totalWeight.toFixed(2) + '\u00a0kg' : '—';
-  var C = 8; // total columns
+  var C = 7; // total columns
   var ft  = 'padding:8px 6px;border-bottom:none;';
   var ftr = ft  + 'text-align:right;';
   var ftb = ft  + 'border-top:2px solid #1A1A1A;font-weight:600;';
@@ -1628,24 +1634,25 @@ function exportQuoteExcel() {
     [COMPANY.name],
     [COMPANY.addr, '', COMPANY.tel, '', 'VAT: '+COMPANY.vat],
     [],
-    [isZh?'报价单':'Quotation','','','Date:',date,'',''],
+    [isZh?'报价单':'Quotation','','Date:',date,'',''],
     [],
-    ['SKU', isZh?'名称':'Name', isZh?'总数量':'Total Qty', isZh?'重量(kg)':'Wt(kg)',
+    ['SKU', isZh?'名称':'Name', isZh?'重量(kg)':'Wt(kg)',
      isZh?'销售单位':'Sales Unit', isZh?'折扣%':'Disc%', isZh?'单价(€)':'Unit(€)', isZh?'小计(€)':'Sub(€)']
   ];
   d.rows.forEach(function(r) {
-    rows1.push([r.p.sku, isZh?r.p.nameZh:r.p.nameEn, r.totalQty,
+    rows1.push([r.p.sku, isZh?r.p.nameZh:r.p.nameEn,
       r.wt>0?+r.wt.toFixed(3):0, r.salesUnit, r.disc,
       r.unitP>0?+r.unitP.toFixed(3):'', r.unitP>0?+r.sub.toFixed(2):'']);
   });
   rows1.push([]);
-  rows1.push(['','','','',isZh?'总重量(kg)':'Total Wt(kg)', isZh?'小计':'Subtotal','',d.totalNet>0?+d.totalNet.toFixed(2):'—', d.totalWeight>0?+d.totalWeight.toFixed(2):0]);
-  rows1.push(['','','','','',isZh?'项目折扣':'Proj. Discount','',d.projDisc+'%']);
-  rows1.push(['','','','','',isZh?'总价':'Total','',d.totalAfterProj>0?+d.totalAfterProj.toFixed(2):'—']);
-  rows1.push(['','','','','','€ / Panel','',d.perPanel>0?+d.perPanel.toFixed(3):'—']);
+  // col layout: [SKU][Name][Wt][SalesUnit][Disc%][Unit€][Sub€]
+  rows1.push(['','', d.totalWeight>0?+d.totalWeight.toFixed(2):0,'', isZh?'小计':'Subtotal','', d.totalNet>0?+d.totalNet.toFixed(2):'—']);
+  rows1.push(['','','','', isZh?'项目折扣':'Proj. Discount','', d.projDisc+'%']);
+  rows1.push(['','','','', isZh?'总价':'Total','', d.totalAfterProj>0?+d.totalAfterProj.toFixed(2):'—']);
+  rows1.push(['','','','', '€ / Panel','', d.perPanel>0?+d.perPanel.toFixed(3):'—']);
 
   var ws1 = XLSX.utils.aoa_to_sheet(rows1);
-  ws1['!cols'] = [22,28,10,10,22,8,12,12].map(function(w){return{wch:w};});
+  ws1['!cols'] = [22,28,12,26,8,12,14].map(function(w){return{wch:w};});
 
   // ── Sheet 2: BOM ──
   var bom = _bomRows();
@@ -1669,8 +1676,42 @@ function exportQuoteExcel() {
 }
 
 function exportQuotePDF() {
-  // Use window.print() — supports CJK, renders exactly what the page shows.
-  // User selects "Save as PDF" in the browser print dialog.
+  var isZh = lang === 'zh';
+  var date = document.getElementById('quoteDate').textContent;
+  var bom  = _bomRows();
+
+  // Build BOM HTML table for page 2
+  var th = function(t){ return '<th style="padding:6px 8px;text-align:left;font-weight:600;font-size:11px;">' + t + '</th>'; };
+  var bomHtml =
+    '<div style="font-family:Inter,Arial,sans-serif;padding:24px 32px;">' +
+    '<div style="border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:16px;">' +
+    '<div style="font-size:18px;font-weight:300;letter-spacing:-.01em;">' + (isZh?'配件清单 / Bill of Materials':'Bill of Materials') + '</div>' +
+    '<div style="font-size:11px;color:#999;margin-top:4px;">Date: ' + date + '&nbsp;&nbsp;|&nbsp;&nbsp;Panels: ' + _quoteTotalPanels + '</div>' +
+    '</div>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:11px;">' +
+    '<thead><tr style="background:#1a1a1a;color:#fff;">' +
+    th(isZh?'图片':'IMG') + th(isZh?'名称':'Name') + th(isZh?'料号':'Part No.') +
+    th(isZh?'数量':'Qty') + th(isZh?'单重(kg)':'Unit Wt') + th(isZh?'总重(kg)':'Total Wt') + th(isZh?'描述':'Description') +
+    '</tr></thead><tbody>';
+  bom.forEach(function(b, i) {
+    var bg  = i % 2 === 0 ? '#fff' : '#faf9f7';
+    var img = b.imgSrc ? '<img src="' + b.imgSrc + '" style="width:36px;height:28px;object-fit:contain;display:block;">' : '';
+    var td  = function(t,s){ return '<td style="padding:5px 8px;border-bottom:1px solid #eee;' + (s||'') + '">' + t + '</td>'; };
+    bomHtml +=
+      '<tr style="background:' + bg + ';">' +
+      td(img) +
+      td('<span style="font-weight:500;">' + (isZh?b.nameZh:b.nameEn) + '</span>') +
+      td('<span style="font-family:monospace;color:#888;">' + (b.partNo||'—') + '</span>') +
+      td(b.qty, 'text-align:center;') +
+      td(b.weight>0?b.weight.toFixed(3):'-', 'text-align:right;') +
+      td(b.weight>0?(b.qty*b.weight).toFixed(2):'-', 'text-align:right;') +
+      td('<span style="color:#555;">' + (b.desc||'') + '</span>') +
+      '</tr>';
+  });
+  bomHtml += '</tbody></table></div>';
+
+  document.getElementById('print-bom-inner').innerHTML = bomHtml;
+
   window.onafterprint = function() {
     document.body.classList.remove('printing-quote');
     window.onafterprint = null;
