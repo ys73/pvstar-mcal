@@ -1418,7 +1418,7 @@ function closeRoundupModal() {
         <div>VAT No.: DE366513627</div>
       </div>
     </div>
-    <button onclick="closeQuoteModal()" style="position:absolute;top:14px;right:18px;border:none;background:none;font-size:24px;cursor:pointer;color:#888;">&times;</button>
+    <button onclick="closeQuoteModal()" class="no-print" style="position:absolute;top:14px;right:18px;border:none;background:none;font-size:24px;cursor:pointer;color:#888;">&times;</button>
     <div style="padding:24px 32px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
@@ -1644,14 +1644,13 @@ function exportQuoteExcel() {
     [isZh?'配件清单 BOM':'Bill of Materials'],
     ['Date:', date],
     [],
-    [isZh?'名称':'Name', isZh?'料号':'Part No.', isZh?'数量':'Qty', isZh?'单重(kg)':'Unit Wt(kg)', isZh?'总重(kg)':'Total Wt(kg)', isZh?'描述':'Description']
+    [isZh?'名称':'Name', isZh?'料号':'Part No.', isZh?'数量':'Qty', isZh?'描述':'Description']
   ];
   bom.forEach(function(b) {
-    rows2.push([isZh?b.nameZh:b.nameEn, b.partNo, b.qty,
-      b.weight>0?b.weight:'', b.weight>0?+(b.qty*b.weight).toFixed(3):'', b.desc]);
+    rows2.push([isZh?b.nameZh:b.nameEn, b.partNo, b.qty, b.desc]);
   });
   var ws2 = XLSX.utils.aoa_to_sheet(rows2);
-  ws2['!cols'] = [22,18,8,12,12,40].map(function(w){return{wch:w};});
+  ws2['!cols'] = [26,18,8,60].map(function(w){return{wch:w};});
 
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws1, isZh?'报价单':'Quotation');
@@ -1673,7 +1672,7 @@ function renderBomSection() {
     '<table style="width:100%;border-collapse:collapse;font-size:12px;font-family:Inter,Arial,sans-serif;">' +
     '<thead><tr style="background:#1a1a1a;color:#fff;">' +
     th(isZh?'图片':'IMG') + th(isZh?'名称':'Name') + th(isZh?'料号':'Part No.') +
-    th(isZh?'数量':'Qty') + th(isZh?'单重(kg)':'Unit Wt') + th(isZh?'总重(kg)':'Total Wt') + th(isZh?'描述':'Description') +
+    th(isZh?'数量':'Qty') + th(isZh?'描述':'Description') +
     '</tr></thead><tbody>';
   bom.forEach(function(b, i) {
     var bg  = i % 2 === 0 ? '#fff' : '#faf9f7';
@@ -1685,8 +1684,6 @@ function renderBomSection() {
       td('<span style="font-weight:500;">' + (isZh ? b.nameZh : b.nameEn) + '</span>') +
       td('<span style="font-family:monospace;font-size:11px;color:#888;">' + (b.partNo || '—') + '</span>') +
       td(b.qty, 'text-align:center;') +
-      td(b.weight > 0 ? b.weight.toFixed(3) : '—', 'text-align:right;') +
-      td(b.weight > 0 ? (b.qty * b.weight).toFixed(2) : '—', 'text-align:right;') +
       td('<span style="color:#555;font-size:11px;">' + (b.desc || '') + '</span>') +
       '</tr>';
   });
