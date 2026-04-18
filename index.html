@@ -13,9 +13,9 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:#fff;color:#000;overflow-x:hidden}
+body{font-family:'Inter',sans-serif;background:#FAF9F7;color:#1A1A1A;overflow-x:hidden}
 
-#screen1{position:relative;width:100%;padding:32px 0 28px;overflow:hidden;background:#fff}
+#screen1{position:relative;width:100%;padding:32px 0 28px;overflow:hidden;background:#FAF9F7}
 .line-element{position:absolute;background:#000;opacity:.3}
 .horizontal-line{height:1px;width:100%}
 
@@ -26,36 +26,36 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#000;overflow-x:hidden
 
 .input-field{position:relative;transition:all .3s ease}
 .input-field input{width:100%;padding:12px 0;border:none;border-bottom:1px solid #e5e5e5;background:transparent;font-size:16px;font-weight:300;transition:all .3s ease}
-.input-field input:focus{outline:none;border-bottom-color:#000;padding-left:8px}
+.input-field input:focus{outline:none;border-bottom-color:#D97706;padding-left:8px}
 .input-field label{position:absolute;top:12px;left:0;font-size:14px;font-weight:300;color:#666;transition:all .3s ease;pointer-events:none}
 .input-field input:focus + label,
 .input-field input:not(:placeholder-shown) + label{top:-8px;font-size:12px;color:#000}
 
-.btn{position:relative;padding:12px 24px;border:1px solid #000;background:#fff;color:#000;font-size:14px;font-weight:400;cursor:pointer;transition:all .3s ease;overflow:hidden}
-.btn:hover{background:#000;color:#fff;transform:translateY(-2px)}
+.btn{position:relative;padding:12px 24px;border:1px solid #D97706;background:#fff;color:#D97706;font-size:14px;font-weight:400;cursor:pointer;transition:all .3s ease;overflow:hidden;border-radius:8px;}
+.btn:hover{background:#D97706;color:#fff;transform:translateY(-2px)}
 .btn:active{transform:translateY(0)}
-.btn-primary{background:#000;color:#fff}
-.btn-primary:hover{background:#fff;color:#000}
+.btn-primary{background:#D97706;color:#fff;border-color:#D97706;}
+.btn-primary:hover{background:#B45309;color:#fff;border-color:#B45309;}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
-.btn:disabled:hover{background:#000;color:#fff}
+.btn:disabled:hover{background:#D97706;color:#fff}
 
-.result-card{position:relative;padding:20px;border:1px solid #e5e5e5;transition:all .3s ease;overflow:hidden}
-.result-card:hover{border-color:#000;transform:translateY(-4px);box-shadow:0 15px 30px rgba(0,0,0,.1)}
-.result-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:#000;transform:scaleY(0);transition:transform .3s ease}
+.result-card{position:relative;padding:20px;border:1px solid #E8E4DF;transition:all .3s ease;overflow:hidden;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.result-card:hover{border-color:#D97706;transform:translateY(-4px);box-shadow:0 15px 30px rgba(217,119,6,.12)}
+.result-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:#D97706;transform:scaleY(0);transition:transform .3s ease}
 .result-card:hover::before{transform:scaleY(1)}
 
 .brand-tab{position:relative;padding:14px 28px;cursor:pointer;transition:all .3s ease;border-bottom:2px solid transparent}
-.brand-tab.active{border-bottom-color:#000;font-weight:500}
-.brand-tab::after{content:'';position:absolute;bottom:-2px;left:50%;width:0;height:2px;background:#000;transition:all .3s ease;transform:translateX(-50%)}
+.brand-tab.active{border-bottom-color:#D97706;font-weight:500;color:#D97706;}
+.brand-tab::after{content:'';position:absolute;bottom:-2px;left:50%;width:0;height:2px;background:#D97706;transition:all .3s ease;transform:translateX(-50%)}
 .brand-tab:hover::after{width:50%}
 .brand-tab.active::after{width:100%}
 .brand-tab.locked{opacity:.45;cursor:not-allowed}
 
-.formula-display{padding:14px;background:#f8f8f8;border-left:3px solid #000;font-family:'Courier New',monospace;font-size:13px;opacity:0;transform:translateX(-20px);transition:all .3s ease}
+.formula-display{padding:14px;background:#FFF7ED;border-left:3px solid #D97706;font-family:'Courier New',monospace;font-size:13px;opacity:0;transform:translateX(-20px);transition:all .3s ease;border-radius:0 6px 6px 0;}
 .formula-display.show{opacity:1;transform:translateX(0)}
 
-.scenario-item{position:relative;padding:10px 14px;border:1px solid #e5e5e5;border-left:3px solid #000;transition:all .3s ease}
-.scenario-item:hover{border-color:#000;transform:translateX(4px)}
+.scenario-item{position:relative;padding:10px 14px;border:1px solid #E8E4DF;border-left:3px solid #D97706;transition:all .3s ease;border-radius:0 6px 6px 0;}
+.scenario-item:hover{border-color:#D97706;transform:translateX(4px)}
 .scenario-item .remove-btn{position:absolute;top:8px;right:8px;width:20px;height:20px;border:none;background:transparent;color:#666;cursor:pointer;transition:all .3s ease;font-size:12px}
 .scenario-item .remove-btn:hover{color:#000;transform:scale(1.2)}
 
@@ -187,8 +187,8 @@ body{font-family:'Inter',sans-serif;background:#fff;color:#000;overflow-x:hidden
 .card-img-wrap:hover img { opacity: 0.85; transition: opacity 0.2s; }
 #lightbox { display: none; }
 #lightbox.open { display: flex !important; animation: fadeIn 0.2s ease; }
-#adminBtn{position:fixed;bottom:24px;right:24px;z-index:9000;padding:8px 16px;background:#000;color:#fff;border:none;font-size:12px;font-family:"Inter",sans-serif;cursor:pointer;letter-spacing:.05em;transition:opacity .2s;}
-#adminBtn:hover{opacity:.75;}
+#adminBtn{position:fixed;bottom:24px;right:24px;z-index:9000;padding:8px 18px;background:#D97706;color:#fff;border:none;font-size:12px;font-family:"Inter",sans-serif;cursor:pointer;letter-spacing:.05em;transition:all .2s;border-radius:20px;box-shadow:0 4px 12px rgba(217,119,6,.35);}
+#adminBtn:hover{background:#B45309;box-shadow:0 6px 16px rgba(217,119,6,.4);}
 .quote-tbl{width:100%;border-collapse:collapse;font-size:13px;}
 .quote-tbl th{text-align:left;padding:8px 6px;border-bottom:2px solid #000;font-weight:500;white-space:nowrap;}
 .quote-tbl td{padding:7px 6px;border-bottom:1px solid #e5e5e5;vertical-align:middle;}
@@ -1216,7 +1216,8 @@ function getEffectivePacks() {
       price:       dbPkg && dbPkg.price       ? dbPkg.price       : 0,
       weight:      dbPkg && dbPkg.weight      ? dbPkg.weight      : 0,
       dimensions:  dbPkg && dbPkg.dimensions  ? dbPkg.dimensions  : '',
-      description: dbPkg && dbPkg.description ? dbPkg.description : ''
+      description: dbPkg && dbPkg.description ? dbPkg.description : '',
+      brand:       dbPkg && dbPkg.brand       ? dbPkg.brand       : ''
     });
   });
 }
@@ -1274,9 +1275,10 @@ function renderRoundupModal() {
     const name   = isZh ? p.nameZh : p.nameEn;
     const unit   = isZh ? p.unitZh : p.unitEn;
     const imgSrc = (p.images && p.images.length > 0) ? p.images[0] : (IMAGES[p.imgKey] || '');
-    const priceTxt = p.price > 0 ? `€${p.price.toFixed(2)}/pack` : '';
-    return `<div style="border:1px solid #e5e5e5;padding:12px;text-align:center;">
-      <div style="font-size:10px;color:#999;margin-bottom:4px;">${p.sku}</div>
+    const priceTxt = p.price > 0 ? `€${p.price.toFixed(3)}/pack` : '';
+    return `<div style="border:1px solid #E8E4DF;padding:12px;text-align:center;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.05);">
+      <div style="font-size:10px;color:#999;margin-bottom:2px;">${p.sku}</div>
+      ${p.brand?`<span style="display:inline-block;font-size:9px;background:${p.brand==='PVSTAR'?'#16a34a':'#1a1a1a'};color:#fff;padding:1px 6px;border-radius:3px;margin-bottom:4px;">${p.brand}</span>`:'<div style="height:16px;margin-bottom:4px;"></div>'}
       ${imgSrc
         ? `<img src="${imgSrc}" style="width:100px;height:80px;object-fit:contain;display:block;margin:0 auto 8px;cursor:zoom-in;" onclick="openLightbox('${imgSrc}','${name.replace(/'/g,String.fromCharCode(39))}')">`
         : '<div style="width:100px;height:80px;margin:0 auto 8px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;"><svg width=32 height=32 fill=none stroke=#ccc stroke-width=1.5 viewBox="0 0 24 24"><rect x=3 y=3 width=18 height=18 rx=2/><path d="m9 9 6 6M15 9l-6 6"/></svg></div>'}
@@ -1318,8 +1320,8 @@ function renderRoundedQtyGrid(db, rounded) {
     const name   = isZh ? item.nameZh : item.nameEn;
     const dbAcc  = db.accessories.find(a => a.imgKey === item.imgKey);
     const imgSrc = (dbAcc && dbAcc.images && dbAcc.images.length > 0) ? dbAcc.images[0] : (IMAGES[item.imgKey] || '');
-    return `<div style="border:1px solid #e5e5e5;padding:10px;text-align:center;">
-      ${imgSrc ? `<img src="${imgSrc}" style="width:80px;height:60px;object-fit:contain;display:block;margin:0 auto 6px;">` : '<div style="height:60px;margin-bottom:6px;background:#f5f5f5;"></div>'}
+    return `<div style="border:1px solid #E8E4DF;padding:10px;text-align:center;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.04);">
+      ${imgSrc ? `<img src="${imgSrc}" style="width:80px;height:60px;object-fit:contain;display:block;margin:0 auto 6px;">` : '<div style="height:60px;margin-bottom:6px;background:#f5f5f5;border-radius:4px;"></div>'}
       <div style="font-size:12px;font-weight:500;margin-bottom:4px;">${name}</div>
       <div id="rounded-qty-${item.key}" style="font-size:1.75rem;font-weight:300;line-height:1;">${qty}</div>
     </div>`;
@@ -1365,8 +1367,8 @@ function closeRoundupModal() {
 
 
 <!-- ── PVSTAR Round-up Modal ── -->
-<div id="roundupModal" style="display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.6);overflow-y:auto;">
-  <div style="max-width:940px;margin:40px auto;background:#fff;padding:32px;position:relative;font-family:'Inter',sans-serif;">
+<div id="roundupModal" style="display:none;position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,.45);overflow-y:auto;backdrop-filter:blur(2px);">
+  <div style="max-width:940px;margin:40px auto;background:#FAF9F7;padding:32px;position:relative;font-family:'Inter',sans-serif;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.2);">
     <button onclick="closeRoundupModal()" style="position:absolute;top:16px;right:20px;border:none;background:none;font-size:24px;cursor:pointer;color:#666;">&times;</button>
 
     <h2 id="roundupTitle" style="font-size:1.5rem;font-weight:300;margin-bottom:6px;">销售包装数量</h2>
@@ -1386,8 +1388,8 @@ function closeRoundupModal() {
 </div>
 
 <!-- ── Quote Modal ── -->
-<div id="quoteModal" style="display:none;position:fixed;inset:0;z-index:9996;background:rgba(0,0,0,0.65);overflow-y:auto;">
-  <div style="max-width:1000px;margin:32px auto 60px;background:#fff;position:relative;font-family:'Inter',sans-serif;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+<div id="quoteModal" style="display:none;position:fixed;inset:0;z-index:9996;background:rgba(0,0,0,.45);overflow-y:auto;backdrop-filter:blur(2px);">
+  <div style="max-width:1000px;margin:32px auto 60px;background:#fff;position:relative;font-family:'Inter',sans-serif;box-shadow:0 20px 60px rgba(0,0,0,.2);border-radius:12px;overflow:hidden;">
     <div style="padding:24px 32px;border-bottom:2px solid #000;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
       <img id="quoteLogoImg" style="height:52px;object-fit:contain;flex-shrink:0;">
       <div style="text-align:right;font-size:12px;color:#555;line-height:1.7;">
@@ -1428,11 +1430,12 @@ function closeRoundupModal() {
           <tfoot id="quoteTableFoot"></tfoot>
         </table>
       </div>
-      <div style="font-size:11px;color:#bbb;margin-top:8px;">* 如需修改包装数量请关闭此窗口在销售包装页面调整后重新生成</div>
-      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px;flex-wrap:wrap;">
-        <button onclick="closeQuoteModal()" class="btn" style="min-width:80px;">关闭</button>
-        <button onclick="exportQuoteExcel()" class="btn" style="min-width:120px;">&#128196; 导出 Excel</button>
-        <button onclick="exportQuotePDF()" class="btn btn-primary" style="min-width:120px;">&#128196; 导出 PDF</button>
+      <div style="display:flex;gap:12px;justify-content:space-between;align-items:center;margin-top:24px;flex-wrap:wrap;">
+        <button onclick="backToRoundup()" class="btn" style="min-width:140px;">&#8592; 返回修改数量</button>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button onclick="exportQuoteExcel()" class="btn" style="min-width:120px;">&#128196; 导出 Excel</button>
+          <button onclick="exportQuotePDF()" class="btn btn-primary" style="min-width:120px;">&#128196; 导出 PDF</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1470,6 +1473,12 @@ function closeQuoteModal() {
   document.body.style.overflow = '';
 }
 
+function backToRoundup() {
+  document.getElementById('quoteModal').style.display = 'none';
+  document.getElementById('roundupModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
 function adjustOverallDisc(delta) {
   _overallDisc = Math.max(0, Math.min(100, _overallDisc + delta));
   document.getElementById('overallDiscDisplay').textContent = _overallDisc + '%';
@@ -1504,7 +1513,7 @@ function renderQuoteTable() {
       '<td style="font-size:11px;color:#777;">' + p.sku + '</td>' +
       '<td>' + name + '</td>' +
       '<td style="text-align:center;">' + qty + '</td>' +
-      '<td style="text-align:right;">' + (unitP > 0 ? unitP.toFixed(2) : '—') + '</td>' +
+      '<td style="text-align:right;">' + (unitP > 0 ? unitP.toFixed(3) : '—') + '</td>' +
       '<td style="text-align:center;"><input type="number" class="disc-input" min="0" max="100" step="1" value="' + disc + '" oninput="setItemDisc(\'' + p.sku + '\', this.value)" title="Item discount %"> %</td>' +
       '<td style="text-align:right;">' + subStr + '</td>' +
       '<td style="text-align:right;">' + wtStr + '</td>' +
@@ -1587,7 +1596,7 @@ function exportQuotePDF() {
     var wt      = qty * (p.weight || 0);
     totalNet   += sub;
     totalWeight+= wt;
-    return [p.sku, name, qty, unitP > 0 ? unitP.toFixed(2) : '-', disc+'%', unitP > 0 ? sub.toFixed(2) : '-', wt > 0 ? wt.toFixed(2) : '-'];
+    return [p.sku, name, qty, unitP > 0 ? unitP.toFixed(3) : '-', disc+'%', unitP > 0 ? sub.toFixed(2) : '-', wt > 0 ? wt.toFixed(2) : '-'];
   });
   bodyRows.push(['', isZh?'Total':'Total', '', '', '', totalNet.toFixed(2), totalWeight > 0 ? totalWeight.toFixed(2) : '-']);
 

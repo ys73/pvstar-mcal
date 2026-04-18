@@ -7,60 +7,61 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100vh}
-.topbar{position:sticky;top:0;z-index:200;background:#000;color:#fff;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+:root{--amber:#D97706;--amber-dk:#B45309;--amber-lt:#FFF7ED;--green:#16a34a;--border:#E8E4DF;--surface:#fff;--bg:#FAF9F7;--text:#1A1A1A;--muted:#6B7280;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.topbar{position:sticky;top:0;z-index:200;background:#1A1A1A;color:#fff;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
 .topbar-title{font-size:14px;font-weight:500;letter-spacing:.06em;}
 .topbar-actions{display:flex;gap:8px;align-items:center;}
-.sidebar{position:fixed;top:56px;left:0;bottom:0;width:220px;background:#fff;border-right:1px solid #e5e5e5;overflow-y:auto;padding:16px 0;}
+.sidebar{position:fixed;top:56px;left:0;bottom:0;width:220px;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:16px 0;}
 .sidebar-item{padding:10px 24px;cursor:pointer;font-size:13px;border-left:3px solid transparent;transition:all .15s;}
-.sidebar-item:hover{background:#f5f5f5;}
-.sidebar-item.active{border-left-color:#000;font-weight:500;background:#f9f9f9;}
-.sidebar-sep{height:1px;background:#e5e5e5;margin:8px 0;}
+.sidebar-item:hover{background:var(--amber-lt);}
+.sidebar-item.active{border-left-color:var(--amber);font-weight:500;background:var(--amber-lt);color:var(--amber-dk);}
+.sidebar-sep{height:1px;background:var(--border);margin:8px 0;}
 .main{margin-left:220px;padding:28px 32px;min-height:calc(100vh - 56px);}
-.btn{padding:8px 18px;border:1px solid #000;background:#fff;color:#000;font-size:13px;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;}
-.btn:hover{background:#000;color:#fff;}
-.btn-primary{background:#000;color:#fff;}
-.btn-primary:hover{background:#333;}
+.btn{padding:8px 18px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;border-radius:6px;}
+.btn:hover{background:#f3f4f6;border-color:#9ca3af;}
+.btn-primary{background:var(--amber);color:#fff;border-color:var(--amber);}
+.btn-primary:hover{background:var(--amber-dk);border-color:var(--amber-dk);}
 .btn-sm{padding:5px 12px;font-size:12px;}
-.btn-danger{border-color:#c00;color:#c00;}
-.btn-danger:hover{background:#c00;color:#fff;}
-.btn-icon{width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:13px;transition:all .15s;}
-.btn-icon:hover{border-color:#000;}
-.card{background:#fff;border:1px solid #e5e5e5;padding:18px 20px;margin-bottom:12px;position:relative;transition:border-color .15s;}
-.card:hover{border-color:#ccc;}
+.btn-danger{border-color:#dc2626;color:#dc2626;}
+.btn-danger:hover{background:#dc2626;color:#fff;}
+.btn-icon{width:26px;height:26px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:13px;transition:all .15s;border-radius:4px;}
+.btn-icon:hover{border-color:var(--amber);color:var(--amber);}
+.card{background:var(--surface);border:1px solid var(--border);padding:18px 20px;margin-bottom:12px;position:relative;transition:all .15s;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.card:hover{border-color:var(--amber);box-shadow:0 4px 12px rgba(217,119,6,.08);}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap;}
 .card-title{font-size:14px;font-weight:500;}
 .card-actions{display:flex;gap:6px;flex-shrink:0;}
 .field{margin-bottom:12px;}
-.field label{display:block;font-size:11px;color:#666;margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
-.field input,.field textarea,.field select{width:100%;padding:8px 10px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;background:#fff;transition:border-color .15s;}
-.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:#000;}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;}
+.field input,.field textarea,.field select{width:100%;padding:8px 10px;border:1px solid var(--border);font-size:13px;font-family:'Inter',sans-serif;background:var(--surface);transition:border-color .15s;border-radius:6px;}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(217,119,6,.1);}
 .field textarea{resize:vertical;min-height:60px;}
 .field-row{display:flex;gap:12px;}
 .field-row .field{flex:1;margin-bottom:0;}
 .img-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
-.img-thumb{position:relative;width:72px;height:60px;border:1px solid #e5e5e5;overflow:hidden;}
+.img-thumb{position:relative;width:72px;height:60px;border:1px solid var(--border);overflow:hidden;border-radius:4px;}
 .img-thumb img{width:100%;height:100%;object-fit:contain;}
-.img-thumb .del-img{position:absolute;top:1px;right:1px;width:15px;height:15px;background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;}
+.img-thumb .del-img{position:absolute;top:1px;right:1px;width:15px;height:15px;background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;border-radius:2px;}
 .content-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:13px;}
 .content-row:last-child{border-bottom:none;}
-.content-row .qty-inp{width:60px;padding:3px 6px;border:1px solid #ddd;font-size:13px;text-align:center;font-family:'Inter',sans-serif;}
-.content-row .qty-inp:focus{outline:none;border-color:#000;}
+.content-row .qty-inp{width:60px;padding:3px 6px;border:1px solid var(--border);font-size:13px;text-align:center;font-family:'Inter',sans-serif;border-radius:4px;}
+.content-row .qty-inp:focus{outline:none;border-color:var(--amber);}
 .attach-item{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;border-bottom:1px solid #f5f5f5;}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;overflow-y:auto;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;overflow-y:auto;backdrop-filter:blur(2px);}
 .modal-overlay.open{display:block;}
-.modal-box{background:#fff;max-width:700px;margin:40px auto;padding:28px;position:relative;}
-.modal-title{font-size:1.15rem;font-weight:300;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid #e5e5e5;}
-.modal-close{position:absolute;top:14px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:#888;}
-.modal-close:hover{color:#000;}
-.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid #e5e5e5;}
+.modal-box{background:var(--surface);max-width:700px;margin:40px auto;padding:28px;position:relative;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-title{font-size:1.15rem;font-weight:400;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.modal-close{position:absolute;top:14px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:#9ca3af;}
+.modal-close:hover{color:var(--text);}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;}
-.section-title{font-size:1.05rem;font-weight:300;}
-.section-sub{font-size:12px;color:#888;margin-top:2px;}
-.empty{text-align:center;padding:48px;color:#bbb;font-size:13px;}
-#toast{position:fixed;bottom:22px;right:22px;background:#000;color:#fff;padding:10px 20px;font-size:13px;opacity:0;transition:opacity .3s;z-index:9999;pointer-events:none;}
+.section-title{font-size:1.05rem;font-weight:400;}
+.section-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.empty{text-align:center;padding:48px;color:#d1d5db;font-size:13px;}
+#toast{position:fixed;bottom:22px;right:22px;background:#1A1A1A;color:#fff;padding:10px 20px;font-size:13px;opacity:0;transition:opacity .3s;z-index:9999;pointer-events:none;border-radius:8px;}
 #toast.show{opacity:1;}
-#js-err{display:none;position:fixed;top:56px;left:0;right:0;background:#c00;color:#fff;padding:10px 20px;font-size:12px;z-index:9000;word-break:break-all;}
+#js-err{display:none;position:fixed;top:56px;left:0;right:0;background:#dc2626;color:#fff;padding:10px 20px;font-size:12px;z-index:9000;word-break:break-all;}
 </style>
 </head>
 <body>
@@ -139,7 +140,7 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
       <div class="field"><label id="acc-weight-label">重量 Weight (kg)</label><input id="acc-weight" type="number" min="0" step="0.001" placeholder="0.000"></div>
     </div>
     <div class="field-row">
-      <div class="field"><label id="acc-price-label">价格 Price (€)</label><input id="acc-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label id="acc-price-label">价格 Price (€)</label><input id="acc-price" type="number" min="0" step="0.001" placeholder="0.000"></div>
     </div>
     <div class="field-row">
       <div class="field"><label id="acc-brand-label">品牌 Brand</label>
@@ -188,10 +189,10 @@ body{font-family:'Inter',sans-serif;background:#f5f5f5;color:#000;min-height:100
     </div>
     <div class="field-row">
       <div class="field"><label id="pkg-weight-label">重量 Weight (kg/pack)</label><input id="pkg-weight" type="number" min="0" step="0.001" placeholder="0.000"></div>
-      <div class="field"><label id="pkg-dim-label">尺寸 Dimensions (cm)</label><div style="display:flex;gap:6px;align-items:center;"><input id="pkg-dim-l" type="number" min="0" step="0.1" placeholder="长 L" style="flex:1;padding:8px 6px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;"><span style="color:#888;font-size:13px;flex-shrink:0;">×</span><input id="pkg-dim-w" type="number" min="0" step="0.1" placeholder="宽 W" style="flex:1;padding:8px 6px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;"><span style="color:#888;font-size:13px;flex-shrink:0;">×</span><input id="pkg-dim-h" type="number" min="0" step="0.1" placeholder="高 H" style="flex:1;padding:8px 6px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;"><span style="color:#888;font-size:12px;flex-shrink:0;">cm</span></div></div>
+      <div class="field"><label id="pkg-dim-label">尺寸 Dimensions (cm)</label><div style="display:flex;gap:6px;align-items:center;"><input id="pkg-dim-l" type="number" min="0" step="0.1" placeholder="长 L" style="flex:1;padding:8px 6px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;"><span style="color:#888;font-size:13px;flex-shrink:0;">×</span><input id="pkg-dim-w" type="number" min="0" step="0.1" placeholder="宽 W" style="flex:1;padding:8px 6px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;"><span style="color:#888;font-size:13px;flex-shrink:0;">×</span><input id="pkg-dim-h" type="number" min="0" step="0.1" placeholder="高 H" style="flex:1;padding:8px 6px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;"><span style="color:#888;font-size:12px;flex-shrink:0;">mm</span></div></div>
     </div>
     <div class="field-row">
-      <div class="field"><label id="pkg-price-label">价格 Price (€/pack)</label><input id="pkg-price" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label id="pkg-price-label">价格 Price (€/pack)</label><input id="pkg-price" type="number" min="0" step="0.001" placeholder="0.000"></div>
       <div class="field" style="display:none;"><label id="pkg-calc-label">Calc From</label><select id="pkg-calcFrom" style="width:100%;padding:8px 10px;border:1px solid #ddd;font-size:13px;"><option value="rails">rails</option><option value="hooks">hooks</option><option value="endClamps">endClamps</option><option value="midClamps">midClamps</option><option value="railConnectors">railConnectors</option><option value="leftEndCaps">leftEndCaps</option></select></div>
     </div>
     <div class="field-row">
@@ -273,7 +274,7 @@ const ADMIN_T = {
     labelDesc:'产品描述 Description',labelImages:'图片 Images',labelUpload:'+ 上传图片',
     labelAttach:'附件 Attachments（说明书、安装视频链接等）',attachAdd:'添加',
     cancel:'取消',save:'保存',
-    labelSku:'SKU / 料号',labelPackSize:'包装数量 Pack Size',labelDimensions:'尺寸 Dimensions (cm)',
+    labelSku:'SKU / 料号',labelPackSize:'包装数量 Pack Size',labelDimensions:'尺寸 Dimensions (mm)',
     labelPrice2:'价格 Price (€/pack)',labelWeight2:'重量 Weight (kg/pack)',
     labelCalcFrom:'计算来源 Calc From',labelPkgDesc:'产品描述',labelContents:'包内配件 Contents',addContent:'+ 添加配件',
     weight:'重量',price:'价格',dims:'尺寸',perPack:'/pack',partNo:'料号',
@@ -304,7 +305,7 @@ const ADMIN_T = {
     labelDesc:'Description',labelImages:'Images',labelUpload:'+ Upload Image',
     labelAttach:'Attachments (manual, video links, etc.)',attachAdd:'Add',
     cancel:'Cancel',save:'Save',
-    labelSku:'SKU',labelPackSize:'Pack Size',labelDimensions:'Dimensions (cm)',
+    labelSku:'SKU',labelPackSize:'Pack Size',labelDimensions:'Dimensions (mm)',
     labelPrice2:'Price (€/pack)',labelWeight2:'Weight (kg/pack)',
     labelCalcFrom:'Calculation Source',labelPkgDesc:'Description',labelContents:'Pack Contents',addContent:'+ Add Accessory',
     weight:'Weight',price:'Price',dims:'Dims',perPack:'/pack',partNo:'Part No.',
@@ -556,7 +557,7 @@ async function renderAccList(){
   if(!db.accessories.length){el.innerHTML='<div class="empty">'+ADMIN_T[adminLang].emptyAcc+'</div>';return;}
   el.innerHTML=db.accessories.map(function(a){
     var img=a.images&&a.images.length?'<img src="'+a.images[0]+'" style="width:56px;height:48px;object-fit:contain;border:1px solid #e5e5e5;margin-right:12px;flex-shrink:0;">':'<div style="width:56px;height:48px;background:#f5f5f5;margin-right:12px;flex-shrink:0;border:1px solid #f0f0f0;"></div>';
-    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+a.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+a.nameEn+'</span>'+(a.brand?'<span style="font-size:10px;background:#000;color:#fff;padding:1px 6px;margin-left:4px;">'+a.brand+'</span>':'')+(a.partNo?'<div style="font-size:11px;color:#aaa;">'+ADMIN_T[adminLang].partNo+': '+a.partNo+'</div>':'')+'</div></div><div class="card-actions"><button class="btn btn-sm" data-id="'+ a.id +'" onclick="openAccModal(this.dataset.id)">'+ ADMIN_T[adminLang].editBtn +'</button><button class="btn btn-sm btn-danger" data-id="'+ a.id +'" onclick="deleteAcc(this.dataset.id)">'+ ADMIN_T[adminLang].deleteBtn +'</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;"><span>重量: <b>'+(a.weight||'—')+'</b> kg</span><span>'+ADMIN_T[adminLang].price+': <b>'+(a.price>0?'€'+Number(a.price).toFixed(2):'—')+'</b></span>'+(a.description?'<span style="color:#aaa;">'+a.description.substring(0,80)+'</span>':'')+'</div>'+(a.attachments&&a.attachments.length?'<div style="margin-top:6px;">'+a.attachments.map(function(at){return '<a href="'+at.url+'" target="_blank" style="font-size:11px;color:#555;margin-right:8px;">📎 '+at.name+'</a>';}).join('')+'</div>':'')+'</div>';
+    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+a.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+a.nameEn+'</span>'+(a.brand?'<span style="font-size:10px;background:'+(a.brand==='PVSTAR'?'#16a34a':'#1a1a1a')+';color:#fff;padding:1px 6px;margin-left:4px;border-radius:3px;">'+a.brand+'</span>':'')+(a.partNo?'<div style="font-size:11px;color:#aaa;">'+ADMIN_T[adminLang].partNo+': '+a.partNo+'</div>':'')+'</div></div><div class="card-actions"><button class="btn btn-sm" data-id="'+ a.id +'" onclick="openAccModal(this.dataset.id)">'+ ADMIN_T[adminLang].editBtn +'</button><button class="btn btn-sm btn-danger" data-id="'+ a.id +'" onclick="deleteAcc(this.dataset.id)">'+ ADMIN_T[adminLang].deleteBtn +'</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;"><span>重量: <b>'+(a.weight||'—')+'</b> kg</span><span>'+ADMIN_T[adminLang].price+': <b>'+(a.price>0?'€'+Number(a.price).toFixed(3):'—')+'</b></span>'+(a.description?'<span style="color:#aaa;">'+a.description.substring(0,80)+'</span>':'')+'</div>'+(a.attachments&&a.attachments.length?'<div style="margin-top:6px;">'+a.attachments.map(function(at){return '<a href="'+at.url+'" target="_blank" style="font-size:11px;color:#555;margin-right:8px;">📎 '+at.name+'</a>';}).join('')+'</div>':'')+'</div>';
   }).join('');
 }
 
@@ -614,7 +615,7 @@ async function renderPkgList(){
   el.innerHTML=db.packages.map(function(p){
     var img=p.images&&p.images.length?'<img src="'+p.images[0]+'" style="width:56px;height:48px;object-fit:contain;border:1px solid #e5e5e5;margin-right:12px;flex-shrink:0;">':'<div style="width:56px;height:48px;background:#f5f5f5;margin-right:12px;flex-shrink:0;border:1px solid #f0f0f0;"></div>';
     var contents=(p.contents||[]).map(function(c){var a=db.accessories.find(function(x){return x.id===c.accessoryId;});var n=a?(a.nameZh+' / '+a.nameEn):c.accessoryId;return '<span style="display:inline-flex;align-items:center;gap:3px;background:#f5f5f5;padding:2px 7px;margin:2px;font-size:11px;cursor:pointer;" data-id="'+ c.accessoryId +'" onclick="showAccDetail(this.dataset.id)">'+n+' × '+c.qty+'</span>';}).join('');
-    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+p.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+p.nameEn+'</span><div style="font-size:11px;color:#aaa;">'+(p.brand?'<span style="background:#000;color:#fff;font-size:10px;padding:1px 5px;margin-right:4px;">'+p.brand+'</span>':'')+'SKU: '+(p.sku||'—')+' | '+p.packSize+' pcs/pack | from: '+p.calcFrom+'</div></div></div><div class="card-actions"><button class="btn btn-sm" data-id="'+ p.id +'" onclick="openPkgModal(this.dataset.id)">'+ ADMIN_T[adminLang].editBtn +'</button><button class="btn btn-sm btn-danger" data-id="'+ p.id +'" onclick="deletePkg(this.dataset.id)">'+ ADMIN_T[adminLang].deleteBtn +'</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;margin-bottom:8px;"><span>重量: <b>'+(p.weight||'—')+'</b> kg/pack</span><span>'+ADMIN_T[adminLang].dims+': <b>'+(p.dimensions||'—')+'</b></span><span>'+ADMIN_T[adminLang].price+': <b>'+(p.price>0?'€'+Number(p.price).toFixed(2):'—')+'</b>'+ADMIN_T[adminLang].perPack+'</span></div>'+(contents?'<div style="font-size:11px;color:#888;margin-bottom:4px;font-weight:500;">'+ADMIN_T[adminLang].packContents+'</div>'+contents:'')+'</div>';
+    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+p.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+p.nameEn+'</span><div style="font-size:11px;color:#aaa;">'+(p.brand?'<span style="background:'+(p.brand==='PVSTAR'?'#16a34a':'#1a1a1a')+';color:#fff;font-size:10px;padding:1px 5px;margin-right:4px;border-radius:3px;">'+p.brand+'</span>':'')+'SKU: '+(p.sku||'—')+' | '+p.packSize+' pcs/pack | from: '+p.calcFrom+'</div></div></div><div class="card-actions"><button class="btn btn-sm" data-id="'+ p.id +'" onclick="openPkgModal(this.dataset.id)">'+ ADMIN_T[adminLang].editBtn +'</button><button class="btn btn-sm btn-danger" data-id="'+ p.id +'" onclick="deletePkg(this.dataset.id)">'+ ADMIN_T[adminLang].deleteBtn +'</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;margin-bottom:8px;"><span>重量: <b>'+(p.weight||'—')+'</b> kg/pack</span><span>'+ADMIN_T[adminLang].dims+': <b>'+(p.dimensions||'—')+'</b></span><span>'+ADMIN_T[adminLang].price+': <b>'+(p.price>0?'€'+Number(p.price).toFixed(3):'—')+'</b>'+ADMIN_T[adminLang].perPack+'</span></div>'+(contents?'<div style="font-size:11px;color:#888;margin-bottom:4px;font-weight:500;">'+ADMIN_T[adminLang].packContents+'</div>'+contents:'')+'</div>';
   }).join('');
 }
 
@@ -683,7 +684,7 @@ async function showAccDetail(id){
   if(!id)return;var db=await loadDB(),a=db.accessories.find(function(x){return x.id===id;});if(!a)return;
   var imgs=a.images&&a.images.length?a.images.map(function(s){return '<img src="'+s+'" style="width:76px;height:62px;object-fit:contain;border:1px solid #e5e5e5;margin:2px;">';}).join(''):'<span style="color:#bbb;font-size:12px;">暂无图片</span>';
   var atts=a.attachments&&a.attachments.length?a.attachments.map(function(at){return '<a href="'+at.url+'" target="_blank" style="display:block;font-size:12px;color:#000;margin-bottom:3px;">📎 '+at.name+'</a>';}).join(''):'';
-  document.getElementById('accDetailBody').innerHTML='<h3 style="font-size:1rem;font-weight:500;margin-bottom:12px;">'+a.nameZh+' / '+a.nameEn+'</h3><div style="margin-bottom:10px;">'+imgs+'</div><div style="font-size:13px;line-height:1.8;color:#555;">'+(a.partNo?'<div><b>料号:</b> '+a.partNo+'</div>':'')+(a.weight?'<div><b>重量:</b> '+a.weight+' kg</div>':'')+(a.price>0?'<div><b>价格:</b> €'+Number(a.price).toFixed(2)+'</div>':'')+(a.description?'<div style="margin-top:6px;">'+a.description+'</div>':'')+'</div>'+(atts?'<div style="margin-top:8px;"><b style="font-size:11px;">附件：</b><br>'+atts+'</div>':'');
+  document.getElementById('accDetailBody').innerHTML='<h3 style="font-size:1rem;font-weight:500;margin-bottom:12px;">'+a.nameZh+' / '+a.nameEn+'</h3><div style="margin-bottom:10px;">'+imgs+'</div><div style="font-size:13px;line-height:1.8;color:#555;">'+(a.partNo?'<div><b>料号:</b> '+a.partNo+'</div>':'')+(a.weight?'<div><b>重量:</b> '+a.weight+' kg</div>':'')+(a.price>0?'<div><b>价格:</b> €'+Number(a.price).toFixed(3)+'</div>':'')+(a.description?'<div style="margin-top:6px;">'+a.description+'</div>':'')+'</div>'+(atts?'<div style="margin-top:8px;"><b style="font-size:11px;">附件：</b><br>'+atts+'</div>':'');
   document.getElementById('accDetail').style.display='block';
 }
 function closeAccDetail(){document.getElementById('accDetail').style.display='none';}
