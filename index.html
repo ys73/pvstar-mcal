@@ -1430,13 +1430,13 @@ function closeRoundupModal() {
         <table class="quote-tbl" id="quoteTable">
           <thead>
             <tr>
-              <th id="qh-item">料号 / 名称</th>
-              <th id="qh-img" style="text-align:center;">图片</th>
-              <th id="qh-wt" style="text-align:right;padding-right:20px;">重量<br>(kg)</th>
-              <th id="qh-unit" style="padding-left:20px;">销售单位</th>
-              <th id="qh-disc" style="text-align:center;">折扣率</th>
-              <th id="qh-price" style="text-align:right;">单价 (€)</th>
-              <th id="qh-sub" style="text-align:right;">小计 (€)</th>
+              <th id="qh-item" style="min-width:160px;">料号 / 名称</th>
+              <th id="qh-img" style="text-align:center;width:72px;">图片</th>
+              <th id="qh-wt" style="text-align:right;width:100px;padding-right:0;">重量<br>(kg)</th>
+              <th id="qh-unit" style="min-width:180px;padding-left:48px;">销售单位</th>
+              <th id="qh-disc" style="text-align:center;width:90px;">折扣率</th>
+              <th id="qh-price" style="text-align:right;width:100px;">单价 (€)</th>
+              <th id="qh-sub" style="text-align:right;width:110px;">小计 (€)</th>
             </tr>
           </thead>
           <tbody id="quoteTableBody"></tbody>
@@ -1535,8 +1535,8 @@ function renderQuoteTable() {
     return '<tr>' +
       '<td><div style="font-size:10px;color:#888;font-family:monospace;">' + p.sku + '</div><div style="font-weight:500;font-size:13px;">' + name + '</div></td>' +
       '<td style="text-align:center;padding:6px 4px;">' + imgTag + '</td>' +
-      '<td style="text-align:right;">' + (wt > 0 ? wt.toFixed(2) : '—') + '</td>' +
-      '<td style="padding-left:20px;">' + salesUnit + '</td>' +
+      '<td style="text-align:right;padding-right:0;">' + (wt > 0 ? wt.toFixed(2) : '—') + '</td>' +
+      '<td style="padding-left:48px;">' + salesUnit + '</td>' +
       '<td style="text-align:center;"><input type="number" class="disc-input" min="0" max="100" step="1" value="' + disc + '" oninput="setItemDisc(\'' + p.sku + '\', this.value)"> %</td>' +
       '<td style="text-align:right;">' + (unitP > 0 ? unitP.toFixed(3) : '—') + '</td>' +
       '<td style="text-align:right;">' + (unitP > 0 ? subtotal.toFixed(2) : '—') + '</td>' +
