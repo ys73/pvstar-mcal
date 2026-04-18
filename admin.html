@@ -96,7 +96,32 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <label class="btn btn-sm" style="border-color:#555;color:#ccc;background:transparent;cursor:pointer;">
       <span id="topImportLabel">&#8593; 导入 JSON</span> <input type="file" accept=".json" style="display:none;" onchange="importDB(event)">
     </label>
+    <button class="btn btn-sm" id="topChgPwBtn" style="border-color:#555;color:#ccc;background:transparent;" onclick="openChangePw()">&#128274; 修改密码</button>
     <button class="btn btn-sm btn-primary" id="topBackBtn" onclick="window.open('index.html','_blank')" style="border-color:#fff;">&#8592; 返回计算器</button>
+  </div>
+</div>
+
+<!-- ── Change Password Modal ── -->
+<div id="chgpw-overlay" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;padding:36px 44px;width:380px;box-shadow:0 12px 40px rgba(0,0,0,.2);position:relative;">
+    <button onclick="closeChangePw()" style="position:absolute;top:12px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:#aaa;">&times;</button>
+    <div style="font-size:1rem;font-weight:500;margin-bottom:20px;">&#128274; 修改管理员密码</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">当前密码</label>
+        <input id="chgpw-cur" type="password" placeholder="Current password" style="width:100%;padding:9px 12px;border:1px solid #E8E4DF;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='#E8E4DF'">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">新密码</label>
+        <input id="chgpw-new" type="password" placeholder="New password (min 6 chars)" style="width:100%;padding:9px 12px;border:1px solid #E8E4DF;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='#E8E4DF'">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">确认新密码</label>
+        <input id="chgpw-cfm" type="password" placeholder="Confirm new password" style="width:100%;padding:9px 12px;border:1px solid #E8E4DF;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='#E8E4DF'" onkeydown="if(event.key==='Enter')changePwSubmit()">
+      </div>
+      <div id="chgpw-err" style="font-size:12px;color:#dc2626;min-height:16px;"></div>
+      <button onclick="changePwSubmit()" style="padding:10px;background:#D97706;color:#fff;border:none;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;font-weight:500;transition:background .2s;" onmouseover="this.style.background='#B45309'" onmouseout="this.style.background='#D97706'">确认修改</button>
+    </div>
   </div>
 </div>
 
@@ -751,7 +776,10 @@ async function clearDB(){
 }
 
 /* ── Auth ── */
-var _ADMIN_PW_HASH = '8fd7c14d5f5ad3d3b8de6bfba2cfc1c25c5e73ab7a672ca3c5dd71bc25427a9c'; // pvstar2024
+var _DEFAULT_PW_HASH = '8fd7c14d5f5ad3d3b8de6bfba2cfc1c25c5e73ab7a672ca3c5dd71bc25427a9c'; // pvstar2024
+function _getAdminPwHash() {
+  return localStorage.getItem('pvstar_admin_pw') || _DEFAULT_PW_HASH;
+}
 async function _sha256(str) {
   var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
@@ -761,7 +789,7 @@ async function authSubmit() {
   var err = document.getElementById('auth-err');
   if (!pw) { err.textContent = '请输入密码'; return; }
   var hash = await _sha256(pw);
-  if (hash === _ADMIN_PW_HASH) {
+  if (hash === _getAdminPwHash()) {
     sessionStorage.setItem('pvstar_admin_auth','1');
     document.getElementById('auth-overlay').style.display = 'none';
   } else {
@@ -769,6 +797,31 @@ async function authSubmit() {
     document.getElementById('auth-pw').value = '';
     document.getElementById('auth-pw').focus();
   }
+}
+function openChangePw() {
+  ['chgpw-cur','chgpw-new','chgpw-cfm'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('chgpw-err').textContent = '';
+  document.getElementById('chgpw-overlay').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('chgpw-cur').focus(); }, 80);
+}
+function closeChangePw() {
+  document.getElementById('chgpw-overlay').style.display = 'none';
+}
+async function changePwSubmit() {
+  var cur = document.getElementById('chgpw-cur').value;
+  var nw  = document.getElementById('chgpw-new').value;
+  var cfm = document.getElementById('chgpw-cfm').value;
+  var err = document.getElementById('chgpw-err');
+  err.textContent = '';
+  if (!cur || !nw || !cfm) { err.textContent = '请填写所有字段'; return; }
+  if (nw.length < 6)       { err.textContent = '新密码至少6位'; return; }
+  if (nw !== cfm)          { err.textContent = '两次输入的新密码不一致'; return; }
+  var curHash = await _sha256(cur);
+  if (curHash !== _getAdminPwHash()) { err.textContent = '当前密码错误'; return; }
+  var newHash = await _sha256(nw);
+  localStorage.setItem('pvstar_admin_pw', newHash);
+  closeChangePw();
+  showToast('密码已修改成功');
 }
 (function checkAuth(){
   if (sessionStorage.getItem('pvstar_admin_auth') === '1') {
