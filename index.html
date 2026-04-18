@@ -1416,13 +1416,14 @@ function closeRoundupModal() {
         <table class="quote-tbl" id="quoteTable">
           <thead>
             <tr>
-              <th>SKU</th>
-              <th>名称 / Name</th>
-              <th style="text-align:center;">数量<br>Qty</th>
-              <th style="text-align:right;">单价<br>Unit (€)</th>
-              <th style="text-align:center;">折扣<br>Discount</th>
-              <th style="text-align:right;">小计<br>Subtotal (€)</th>
-              <th style="text-align:right;">重量<br>Weight (kg)</th>
+              <th id="qh-item">料号 / 名称</th>
+              <th id="qh-img" style="text-align:center;">图片</th>
+              <th id="qh-qty" style="text-align:center;">数量</th>
+              <th id="qh-wt" style="text-align:right;">重量<br>(kg)</th>
+              <th id="qh-unit">销售单位</th>
+              <th id="qh-disc" style="text-align:center;">折扣率</th>
+              <th id="qh-price" style="text-align:right;">单价 (€)</th>
+              <th id="qh-sub" style="text-align:right;">小计 (€)</th>
             </tr>
           </thead>
           <tbody id="quoteTableBody"></tbody>
@@ -1484,163 +1485,292 @@ function setItemDisc(sku, val) {
 }
 
 function renderQuoteTable() {
-  const isZh      = lang === 'zh';
-  const tbody     = document.getElementById('quoteTableBody');
-  const tfoot     = document.getElementById('quoteTableFoot');
-  const projDisc  = Math.max(0, Math.min(100, parseInt(document.getElementById('projectDiscount').value) || 0));
+  const isZh     = lang === 'zh';
+  const tbody    = document.getElementById('quoteTableBody');
+  const tfoot    = document.getElementById('quoteTableFoot');
+  const projDisc = Math.max(0, Math.min(100, parseInt(document.getElementById('projectDiscount').value) || 0));
   let totalNet = 0, totalWeight = 0;
 
-  tbody.innerHTML = _quotePacks.map(p => {
-    const name     = isZh ? p.nameZh : p.nameEn;
-    const qty      = p.count;
-    const unitP    = p.price || 0;
-    const disc     = (_itemDiscs[p.sku] !== undefined) ? _itemDiscs[p.sku] : 0;
-    const subtotal = qty * unitP * (1 - disc / 100);
-    const wt       = qty * (p.weight || 0);
+  // Update bilingual headers
+  var hdr = { item: isZh?'料号 / 名称':'ITEM', img: isZh?'图片':'IMAGE', qty: isZh?'数量':'QTY',
+              wt: isZh?'重量 (kg)':'WEIGHT (kg)', unit: isZh?'销售单位':'SALES UNIT',
+              disc: isZh?'折扣率':'DISC%', price: isZh?'单价 (€)':'UNIT (€)', sub: isZh?'小计 (€)':'SUBTOTAL (€)' };
+  Object.keys(hdr).forEach(function(k){ var el=document.getElementById('qh-'+k); if(el) el.innerHTML=hdr[k]; });
+
+  tbody.innerHTML = _quotePacks.map(function(p) {
+    var name      = isZh ? p.nameZh : p.nameEn;
+    var unitLabel = isZh ? (p.unitZh||'个/包') : (p.unitEn||'pcs/pack');
+    var packSz    = p.packSize || 1;
+    var totalQty  = p.count * packSz;
+    var salesUnit = p.count + ' \u00d7 (' + packSz + '\u00a0' + unitLabel + ')';
+    var unitP     = p.price || 0;
+    var disc      = (_itemDiscs[p.sku] !== undefined) ? _itemDiscs[p.sku] : 0;
+    var subtotal  = p.count * unitP * (1 - disc / 100);
+    var wt        = p.count * (p.weight || 0);
     totalNet    += subtotal;
     totalWeight += wt;
+    var imgSrc    = (p.images && p.images.length) ? p.images[0] : '';
+    var imgTag    = imgSrc ? '<img src="' + imgSrc + '" style="width:44px;height:36px;object-fit:contain;display:block;margin:auto;">' : '<div style="width:44px;height:36px;background:#f5f5f5;margin:auto;border-radius:3px;"></div>';
     return '<tr>' +
-      '<td style="font-size:11px;color:#777;">' + p.sku + '</td>' +
-      '<td>' + name + '</td>' +
-      '<td style="text-align:center;">' + qty + '</td>' +
-      '<td style="text-align:right;">' + (unitP > 0 ? unitP.toFixed(3) : '—') + '</td>' +
-      '<td style="text-align:center;"><input type="number" class="disc-input" min="0" max="100" step="1" value="' + disc + '" oninput="setItemDisc(\'' + p.sku + '\', this.value)" title="Item discount %"> %</td>' +
-      '<td style="text-align:right;">' + (unitP > 0 ? subtotal.toFixed(2) : '—') + '</td>' +
+      '<td><div style="font-size:10px;color:#888;font-family:monospace;">' + p.sku + '</div><div style="font-weight:500;font-size:13px;">' + name + '</div></td>' +
+      '<td style="text-align:center;padding:6px 4px;">' + imgTag + '</td>' +
+      '<td style="text-align:center;">' + totalQty + '</td>' +
       '<td style="text-align:right;">' + (wt > 0 ? wt.toFixed(2) : '—') + '</td>' +
+      '<td style="font-size:12px;color:#555;">' + salesUnit + '</td>' +
+      '<td style="text-align:center;"><input type="number" class="disc-input" min="0" max="100" step="1" value="' + disc + '" oninput="setItemDisc(\'' + p.sku + '\', this.value)"> %</td>' +
+      '<td style="text-align:right;">' + (unitP > 0 ? unitP.toFixed(3) : '—') + '</td>' +
+      '<td style="text-align:right;">' + (unitP > 0 ? subtotal.toFixed(2) : '—') + '</td>' +
       '</tr>';
   }).join('');
 
-  const totalAfterProj = totalNet * (1 - projDisc / 100);
-  const perPanel       = (_quoteTotalPanels > 0 && totalAfterProj > 0) ? totalAfterProj / _quoteTotalPanels : 0;
-  const wtStr          = totalWeight > 0 ? totalWeight.toFixed(2) + ' kg' : '—';
-  const ft = 'padding:8px 6px;border-bottom:none;';
-  const ftr = ft + 'text-align:right;';
-  const ftb = ft + 'border-top:2px solid #000;font-weight:600;';
-  const ftbr = ftb + 'text-align:right;';
+  var totalAfterProj = totalNet * (1 - projDisc / 100);
+  var perPanel       = (_quoteTotalPanels > 0 && totalAfterProj > 0) ? totalAfterProj / _quoteTotalPanels : 0;
+  var wtStr          = totalWeight > 0 ? totalWeight.toFixed(2) + '\u00a0kg' : '—';
+  var C = 8; // total columns
+  var ft  = 'padding:8px 6px;border-bottom:none;';
+  var ftr = ft  + 'text-align:right;';
+  var ftb = ft  + 'border-top:2px solid #1A1A1A;font-weight:600;';
+  var ftbr= ftb + 'text-align:right;';
 
   tfoot.innerHTML =
-    '<tr>' +
-      '<td colspan="4" style="' + ft + 'text-align:right;border-top:2px solid #000;">' + (isZh ? '小计' : 'Subtotal') + '</td>' +
-      '<td style="' + ft + 'border-top:2px solid #000;"></td>' +
-      '<td style="' + ftr + 'border-top:2px solid #000;">' + (totalNet > 0 ? '€ ' + totalNet.toFixed(2) : '—') + '</td>' +
-      '<td style="' + ftr + 'border-top:2px solid #000;">' + wtStr + '</td>' +
-    '</tr><tr>' +
-      '<td colspan="4" style="' + ft + 'text-align:right;">' + (isZh ? '项目折扣' : 'Project Discount') + '</td>' +
-      '<td style="' + ft + '"></td>' +
-      '<td style="' + ftr + '">' + projDisc + '%</td>' +
-      '<td style="' + ft + '"></td>' +
-    '</tr><tr>' +
-      '<td colspan="4" style="' + ftb + 'text-align:right;">' + (isZh ? '总价' : 'Total') + '</td>' +
-      '<td style="' + ftb + '"></td>' +
-      '<td style="' + ftbr + '">' + (totalAfterProj > 0 ? '€ ' + totalAfterProj.toFixed(2) : '—') + '</td>' +
-      '<td style="' + ftb + '"></td>' +
-    '</tr><tr>' +
-      '<td colspan="4" style="' + ft + 'text-align:right;">€ / Panel</td>' +
-      '<td style="' + ft + '"></td>' +
-      '<td style="' + ftr + 'font-weight:600;">' + (perPanel > 0 ? '€ ' + perPanel.toFixed(3) : '—') + '</td>' +
-      '<td style="' + ft + '"></td>' +
-    '</tr>';
+    '<tr><td colspan="' + (C-2) + '" style="' + ft + 'text-align:right;border-top:2px solid #1A1A1A;">' + (isZh?'小计':'Subtotal') + '</td>' +
+      '<td style="' + ftr + 'border-top:2px solid #1A1A1A;">' + (totalNet>0?'€\u00a0'+totalNet.toFixed(2):'—') + '</td>' +
+      '<td style="' + ft  + 'border-top:2px solid #1A1A1A;">' + wtStr + '</td></tr>' +
+    '<tr><td colspan="' + (C-2) + '" style="' + ft + 'text-align:right;">' + (isZh?'项目折扣':'Project Discount') + '</td>' +
+      '<td style="' + ftr + '">' + projDisc + '%</td><td style="' + ft + '"></td></tr>' +
+    '<tr><td colspan="' + (C-2) + '" style="' + ftb + 'text-align:right;">' + (isZh?'总价':'Total') + '</td>' +
+      '<td style="' + ftbr + '">' + (totalAfterProj>0?'€\u00a0'+totalAfterProj.toFixed(2):'—') + '</td>' +
+      '<td style="' + ftb + '"></td></tr>' +
+    '<tr><td colspan="' + (C-2) + '" style="' + ft + 'text-align:right;">€ / Panel</td>' +
+      '<td style="' + ftr + 'font-weight:600;">' + (perPanel>0?'€\u00a0'+perPanel.toFixed(3):'—') + '</td>' +
+      '<td style="' + ft + '"></td></tr>';
+}
+
+// ── helpers shared by both exports ──
+function _quoteCalcRows() {
+  var projDisc = Math.max(0, Math.min(100, parseInt(document.getElementById('projectDiscount').value)||0));
+  var rows = [], totalNet = 0, totalWeight = 0;
+  _quotePacks.forEach(function(p) {
+    var unitLabel = lang==='zh' ? (p.unitZh||'个/包') : (p.unitEn||'pcs/pack');
+    var packSz    = p.packSize || 1;
+    var totalQty  = p.count * packSz;
+    var salesUnit = p.count + ' x (' + packSz + ' ' + unitLabel + ')';
+    var unitP     = p.price  || 0;
+    var disc      = (_itemDiscs[p.sku] !== undefined) ? _itemDiscs[p.sku] : 0;
+    var sub       = p.count * unitP * (1 - disc/100);
+    var wt        = p.count * (p.weight||0);
+    totalNet    += sub;
+    totalWeight += wt;
+    rows.push({ p:p, totalQty:totalQty, salesUnit:salesUnit, unitP:unitP, disc:disc, sub:sub, wt:wt });
+  });
+  var totalAfterProj = totalNet * (1 - projDisc/100);
+  var perPanel = (_quoteTotalPanels>0 && totalAfterProj>0) ? totalAfterProj/_quoteTotalPanels : 0;
+  return { rows:rows, totalNet:totalNet, totalWeight:totalWeight, projDisc:projDisc, totalAfterProj:totalAfterProj, perPanel:perPanel };
+}
+
+function _bomRows() {
+  var db  = getPvstarDB();
+  var isZh = lang==='zh';
+  var items = [];
+  ROUNDUP_QTY_ITEMS.forEach(function(item) {
+    var qty   = _currentRounded[item.key] || 0;
+    if (!qty) return;
+    var dbAcc = db.accessories.find(function(a){ return a.imgKey===item.imgKey; }) || {};
+    items.push({
+      nameZh: item.nameZh, nameEn: item.nameEn,
+      qty: qty,
+      partNo: dbAcc.partNo||'',
+      weight: dbAcc.weight||0,
+      desc:   dbAcc.description||'',
+      imgSrc: (dbAcc.images&&dbAcc.images.length) ? dbAcc.images[0] : ''
+    });
+  });
+  return items;
 }
 
 function exportQuoteExcel() {
-  if (typeof XLSX === 'undefined') { alert('SheetJS library not loaded. Please check internet connection.'); return; }
-  const isZh = lang === 'zh';
-  const rows = [
+  if (typeof XLSX === 'undefined') { alert('SheetJS not loaded.'); return; }
+  var isZh = lang==='zh';
+  var d    = _quoteCalcRows();
+  var date = document.getElementById('quoteDate').textContent;
+
+  // ── Sheet 1: Quotation ──
+  var rows1 = [
     [COMPANY.name],
     [COMPANY.addr, '', COMPANY.tel, '', 'VAT: '+COMPANY.vat],
     [],
-    [isZh ? '报价单' : 'Quotation', '', '', '', '', 'Date: '+document.getElementById('quoteDate').textContent],
+    [isZh?'报价单':'Quotation','','','Date:',date,'',''],
     [],
-    ['SKU', isZh?'名称':'Name', isZh?'数量':'Qty', isZh?'单价(€)':'Unit(€)', isZh?'折扣%':'Disc%', isZh?'小计(€)':'Sub(€)', isZh?'重量(kg)':'Wt(kg)']
+    ['SKU', isZh?'名称':'Name', isZh?'总数量':'Total Qty', isZh?'重量(kg)':'Wt(kg)',
+     isZh?'销售单位':'Sales Unit', isZh?'折扣%':'Disc%', isZh?'单价(€)':'Unit(€)', isZh?'小计(€)':'Sub(€)']
   ];
-  let totalNet = 0, totalWeight = 0;
-  _quotePacks.forEach(function(p) {
-    const name    = isZh ? p.nameZh : p.nameEn;
-    const qty     = p.count;
-    const unitP   = p.price || 0;
-    const disc    = (_itemDiscs[p.sku] !== undefined) ? _itemDiscs[p.sku] : _overallDisc;
-    const subtotal = qty * unitP * (1 - disc / 100);
-    const wt       = qty * (p.weight || 0);
-    totalNet   += subtotal;
-    totalWeight+= wt;
-    rows.push([p.sku, name, qty, unitP || '', disc, unitP > 0 ? +subtotal.toFixed(2) : '', wt > 0 ? +wt.toFixed(2) : '']);
+  d.rows.forEach(function(r) {
+    rows1.push([r.p.sku, isZh?r.p.nameZh:r.p.nameEn, r.totalQty,
+      r.wt>0?+r.wt.toFixed(3):0, r.salesUnit, r.disc,
+      r.unitP>0?+r.unitP.toFixed(3):'', r.unitP>0?+r.sub.toFixed(2):'']);
   });
-  rows.push([]);
-  rows.push(['', '', '', '', isZh?'合计':'Total', +totalNet.toFixed(2), totalWeight > 0 ? +totalWeight.toFixed(2) : '']);
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [18,28,10,14,10,14,12].map(function(w){return {wch:w};});
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Quotation');
+  rows1.push([]);
+  rows1.push(['','','','','',isZh?'小计':'Subtotal','',d.totalNet>0?+d.totalNet.toFixed(2):'—']);
+  rows1.push(['','','','','',isZh?'项目折扣':'Proj. Discount','',d.projDisc+'%']);
+  rows1.push(['','','','','',isZh?'总价':'Total','',d.totalAfterProj>0?+d.totalAfterProj.toFixed(2):'—']);
+  rows1.push(['','','','','','€ / Panel','',d.perPanel>0?+d.perPanel.toFixed(3):'—']);
+
+  var ws1 = XLSX.utils.aoa_to_sheet(rows1);
+  ws1['!cols'] = [22,28,10,10,22,8,12,12].map(function(w){return{wch:w};});
+
+  // ── Sheet 2: BOM ──
+  var bom = _bomRows();
+  var rows2 = [
+    [isZh?'配件清单 BOM':'Bill of Materials'],
+    ['Date:', date],
+    [],
+    [isZh?'名称':'Name', isZh?'料号':'Part No.', isZh?'数量':'Qty', isZh?'单重(kg)':'Unit Wt(kg)', isZh?'总重(kg)':'Total Wt(kg)', isZh?'描述':'Description']
+  ];
+  bom.forEach(function(b) {
+    rows2.push([isZh?b.nameZh:b.nameEn, b.partNo, b.qty,
+      b.weight>0?b.weight:'', b.weight>0?+(b.qty*b.weight).toFixed(3):'', b.desc]);
+  });
+  var ws2 = XLSX.utils.aoa_to_sheet(rows2);
+  ws2['!cols'] = [22,18,8,12,12,40].map(function(w){return{wch:w};});
+
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws1, isZh?'报价单':'Quotation');
+  XLSX.utils.book_append_sheet(wb, ws2, 'BOM');
   XLSX.writeFile(wb, 'PVSTAR_Quotation.xlsx');
 }
 
 function exportQuotePDF() {
-  if (typeof window.jspdf === 'undefined') { alert('jsPDF library not loaded. Please check internet connection.'); return; }
-  var jsPDF = window.jspdf.jsPDF;
-  var doc   = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
-  var isZh  = lang === 'zh';
-  var pageW = 210, margin = 14;
+  if (typeof window.jspdf === 'undefined') { alert('jsPDF not loaded.'); return; }
+  var jsPDF  = window.jspdf.jsPDF;
+  var doc    = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  var isZh   = lang === 'zh';
+  var pageW  = 210, margin = 14;
+  var date   = document.getElementById('quoteDate').textContent;
+  var d      = _quoteCalcRows();
 
-  // Logo
-  try { doc.addImage(LOGO_SRC, 'JPEG', margin, 10, 40, 14, undefined, 'FAST'); } catch(e) {}
+  // ── Page 1: Quotation ──
+  try { doc.addImage(LOGO_SRC,'JPEG',margin,10,36,12,undefined,'FAST'); } catch(e){}
+  doc.setFontSize(8); doc.setTextColor(80);
+  var cLines=[COMPANY.name,COMPANY.addr,COMPANY.tel,'VAT: '+COMPANY.vat];
+  cLines.forEach(function(l,i){ var tw=doc.getTextWidth(l); doc.text(l,pageW-margin-tw,12+i*4.5); });
+  doc.setDrawColor(30); doc.setLineWidth(0.4);
+  doc.line(margin,28,pageW-margin,28);
+  doc.setFontSize(13); doc.setTextColor(0);
+  doc.text(isZh?'Quotation / 报价单':'Quotation', margin, 35);
+  doc.setFontSize(8); doc.setTextColor(120);
+  doc.text('Date: '+date, margin, 40);
 
-  // Company info
-  doc.setFontSize(9); doc.setTextColor(80);
-  var compLines = [COMPANY.name, COMPANY.addr, COMPANY.tel, 'VAT No.: '+COMPANY.vat];
-  compLines.forEach(function(l, i) {
-    var tw = doc.getTextWidth(l);
-    doc.text(l, pageW - margin - tw, 12 + i*5);
+  var imgColW = 16;
+  var bodyRows = d.rows.map(function(r) {
+    return [
+      (r.p.sku||'') + '\n' + (isZh?r.p.nameZh:r.p.nameEn),
+      '', // image cell — drawn via didDrawCell
+      r.totalQty,
+      r.wt>0?r.wt.toFixed(2):'-',
+      r.salesUnit,
+      r.disc+'%',
+      r.unitP>0?r.unitP.toFixed(3):'-',
+      r.unitP>0?r.sub.toFixed(2):'-'
+    ];
   });
 
-  // Divider
-  doc.setDrawColor(0); doc.setLineWidth(0.5);
-  doc.line(margin, 30, pageW-margin, 30);
-
-  // Title + date
-  doc.setFontSize(14); doc.setTextColor(0);
-  doc.text(isZh ? 'Quotation / 报价单' : 'Quotation', margin, 38);
-  doc.setFontSize(9); doc.setTextColor(150);
-  doc.text('Date: '+document.getElementById('quoteDate').textContent, margin, 44);
-
-  // Table
-  var totalNet = 0, totalWeight = 0;
-  var bodyRows = _quotePacks.map(function(p) {
-    var name    = isZh ? p.nameZh : p.nameEn;
-    var qty     = p.count;
-    var unitP   = p.price || 0;
-    var disc    = (_itemDiscs[p.sku] !== undefined) ? _itemDiscs[p.sku] : _overallDisc;
-    var sub     = qty * unitP * (1 - disc / 100);
-    var wt      = qty * (p.weight || 0);
-    totalNet   += sub;
-    totalWeight+= wt;
-    return [p.sku, name, qty, unitP > 0 ? unitP.toFixed(3) : '-', disc+'%', unitP > 0 ? sub.toFixed(2) : '-', wt > 0 ? wt.toFixed(2) : '-'];
-  });
-  bodyRows.push(['', isZh?'Total':'Total', '', '', '', totalNet.toFixed(2), totalWeight > 0 ? totalWeight.toFixed(2) : '-']);
+  // Footer summary rows
+  var s = isZh;
+  bodyRows.push(['','','','','','', s?'小计':'Subtotal', d.totalNet>0?d.totalNet.toFixed(2):'-']);
+  bodyRows.push(['','','','','','', s?'项目折扣':'Proj. Disc.', d.projDisc+'%']);
+  bodyRows.push(['','','','','','', s?'总价':'Total', d.totalAfterProj>0?d.totalAfterProj.toFixed(2):'-']);
+  bodyRows.push(['','','','','','', '€ / Panel', d.perPanel>0?d.perPanel.toFixed(3):'-']);
+  var summaryStart = d.rows.length;
 
   doc.autoTable({
-    startY: 48,
-    head: [['SKU', isZh?'名称':'Name', isZh?'数量':'Qty', isZh?'单价(€)':'Unit(€)', isZh?'折扣':'Disc%', isZh?'小计(€)':'Sub(€)', isZh?'重量(kg)':'Wt(kg)']],
+    startY: 44,
+    head: [[isZh?'料号/名称':'ITEM', isZh?'图片':'IMG', isZh?'数量':'QTY',
+            isZh?'重量':'WT(kg)', isZh?'销售单位':'SALES UNIT',
+            isZh?'折扣':'DISC', isZh?'单价(€)':'UNIT(€)', isZh?'小计(€)':'SUB(€)']],
     body: bodyRows,
-    styles: { fontSize:8, cellPadding:2.5 },
-    headStyles: { fillColor:[0,0,0], textColor:255, fontStyle:'bold' },
+    styles: { fontSize:7.5, cellPadding:2, overflow:'linebreak' },
+    headStyles: { fillColor:[26,26,26], textColor:255, fontStyle:'bold', fontSize:7 },
     columnStyles: {
-      0:{cellWidth:32}, 1:{cellWidth:44}, 2:{cellWidth:12,halign:'center'},
-      3:{cellWidth:18,halign:'right'},    4:{cellWidth:14,halign:'center'},
-      5:{cellWidth:18,halign:'right'},    6:{cellWidth:16,halign:'right'}
+      0:{cellWidth:34}, 1:{cellWidth:imgColW, halign:'center'},
+      2:{cellWidth:10, halign:'center'}, 3:{cellWidth:14, halign:'right'},
+      4:{cellWidth:30}, 5:{cellWidth:10, halign:'center'},
+      6:{cellWidth:18, halign:'right'}, 7:{cellWidth:20, halign:'right'}
     },
     didParseCell: function(data) {
-      if (data.row.index === bodyRows.length - 1) {
+      if (data.row.index >= summaryStart) {
+        if (data.column.index < 6) { data.cell.text=['']; }
         data.cell.styles.fontStyle = 'bold';
-        data.cell.styles.fillColor = [245,245,245];
+        if (data.row.index === summaryStart+2) data.cell.styles.fillColor=[245,242,235];
+        if (data.row.index === summaryStart+3) data.cell.styles.textColor=[180,83,9];
       }
     },
-    margin: { left: margin, right: margin }
+    didDrawCell: function(data) {
+      if (data.section==='body' && data.column.index===1 && data.row.index<summaryStart) {
+        var p   = d.rows[data.row.index].p;
+        var src = (p.images && p.images.length) ? p.images[0] : '';
+        if (src) {
+          try {
+            var fmt = src.startsWith('data:image/png')?'PNG':'JPEG';
+            var x=data.cell.x+1, y=data.cell.y+1, sz=Math.min(data.cell.height-2,imgColW-2);
+            doc.addImage(src,fmt,x,y,sz,sz,undefined,'FAST');
+          } catch(e){}
+        }
+      }
+    },
+    margin: { left:margin, right:margin }
   });
 
-  // Footer
-  var finalY = doc.lastAutoTable.finalY + 8;
-  doc.setFontSize(8); doc.setTextColor(150);
-  doc.text(COMPANY.name + ' | ' + COMPANY.addr + ' | ' + COMPANY.tel, margin, finalY);
+  var y1 = doc.lastAutoTable.finalY + 6;
+  doc.setFontSize(7); doc.setTextColor(160);
+  doc.text(COMPANY.name+' | '+COMPANY.addr+' | '+COMPANY.tel, margin, y1);
+
+  // ── Page 2: BOM ──
+  doc.addPage();
+  var bom = _bomRows();
+  doc.setFontSize(13); doc.setTextColor(0);
+  doc.text(isZh?'配件清单 BOM':'Bill of Materials', margin, 18);
+  doc.setFontSize(8); doc.setTextColor(120);
+  doc.text('Date: '+date+'   |   Panels: '+_quoteTotalPanels, margin, 24);
+
+  var bomImgW = 18;
+  var bomBody = bom.map(function(b) {
+    return ['', isZh?b.nameZh:b.nameEn, b.partNo, b.qty,
+      b.weight>0?b.weight.toFixed(3):'-',
+      b.weight>0?(b.qty*b.weight).toFixed(2):'-', b.desc];
+  });
+
+  doc.autoTable({
+    startY: 28,
+    head: [[isZh?'图片':'IMG', isZh?'名称':'Name', isZh?'料号':'Part No.',
+            isZh?'数量':'Qty', isZh?'单重(kg)':'Unit Wt', isZh?'总重(kg)':'Total Wt', isZh?'描述':'Description']],
+    body: bomBody,
+    styles: { fontSize:8, cellPadding:2.5, overflow:'linebreak' },
+    headStyles: { fillColor:[26,26,26], textColor:255, fontStyle:'bold', fontSize:7.5 },
+    columnStyles: {
+      0:{cellWidth:bomImgW, halign:'center'},
+      1:{cellWidth:32}, 2:{cellWidth:26},
+      3:{cellWidth:10, halign:'center'},
+      4:{cellWidth:16, halign:'right'}, 5:{cellWidth:16, halign:'right'},
+      6:{cellWidth:'auto'}
+    },
+    didDrawCell: function(data) {
+      if (data.section==='body' && data.column.index===0) {
+        var b = bom[data.row.index];
+        if (b && b.imgSrc) {
+          try {
+            var fmt = b.imgSrc.startsWith('data:image/png')?'PNG':'JPEG';
+            var sz  = Math.min(data.cell.height-2, bomImgW-2);
+            doc.addImage(b.imgSrc,fmt,data.cell.x+1,data.cell.y+1,sz,sz,undefined,'FAST');
+          } catch(e){}
+        }
+      }
+    },
+    margin: { left:margin, right:margin }
+  });
+
+  var y2 = doc.lastAutoTable.finalY + 6;
+  doc.setFontSize(7); doc.setTextColor(160);
+  doc.text(COMPANY.name+' | '+COMPANY.addr+' | '+COMPANY.tel, margin, y2);
 
   doc.save('PVSTAR_Quotation.pdf');
 }
