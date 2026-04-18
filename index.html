@@ -1425,11 +1425,6 @@ function closeRoundupModal() {
           <h2 id="quote-title" style="font-size:1.4rem;font-weight:300;letter-spacing:-.01em;margin-bottom:4px;">报价单 &nbsp;/&nbsp; Quotation</h2>
           <div style="font-size:12px;color:#999;">Date: <span id="quoteDate"></span></div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;background:#FFF7ED;padding:10px 16px;border-left:3px solid #D97706;border-radius:0 6px 6px 0;">
-          <span id="quote-disc-label" style="font-size:12px;color:#555;white-space:nowrap;">项目折扣 Project Discount:</span>
-          <input id="projectDiscount" type="number" min="0" max="100" step="1" value="0" oninput="renderQuoteTable()" style="width:60px;padding:4px 8px;border:1px solid #E8E4DF;font-size:14px;font-weight:500;text-align:center;border-radius:4px;font-family:'Inter',sans-serif;">
-          <span style="font-size:13px;color:#555;">%</span>
-        </div>
       </div>
       <div style="overflow-x:auto;">
         <table class="quote-tbl" id="quoteTable">
@@ -1481,7 +1476,6 @@ function openQuoteModal() {
   _quoteTotalPanels = scenarios.reduce(function(s, sc) { return s + sc.panelCount; }, 0);
   document.getElementById('quoteDate').textContent = new Date().toLocaleDateString('de-DE');
   document.getElementById('quoteLogoImg').src       = LOGO_SRC;
-  document.getElementById('projectDiscount').value  = '0';
   renderQuoteTable();
   renderBomSection();
   document.getElementById('quoteModal').style.display = 'block';
@@ -1508,7 +1502,6 @@ function renderQuoteTable() {
   const isZh     = lang === 'zh';
   const tbody    = document.getElementById('quoteTableBody');
   const tfoot    = document.getElementById('quoteTableFoot');
-  const projDisc = Math.max(0, Math.min(100, parseInt(document.getElementById('projectDiscount').value) || 0));
   let totalNet = 0, totalWeight = 0;
 
   // Update bilingual headers
@@ -1519,8 +1512,6 @@ function renderQuoteTable() {
   // Update static UI labels
   var titleEl = document.getElementById('quote-title');
   if (titleEl) titleEl.innerHTML = isZh ? '报价单 &nbsp;/&nbsp; Quotation' : 'Quotation';
-  var discLbl = document.getElementById('quote-disc-label');
-  if (discLbl) discLbl.textContent = isZh ? '项目折扣 Project Discount:' : 'Project Discount:';
   var backBtn = document.getElementById('btn-back-to-edit');
   if (backBtn) backBtn.innerHTML = '&#8592; ' + (isZh ? '返回修改数量' : 'Back to Packs');
   var xlBtn = document.getElementById('btn-export-excel');
@@ -1545,24 +1536,21 @@ function renderQuoteTable() {
       '<td><div style="font-size:10px;color:#888;font-family:monospace;">' + p.sku + '</div><div style="font-weight:500;font-size:13px;">' + name + '</div></td>' +
       '<td style="text-align:center;padding:6px 4px;">' + imgTag + '</td>' +
       '<td style="text-align:right;">' + (wt > 0 ? wt.toFixed(2) : '—') + '</td>' +
-      '<td>' + salesUnit + '</td>' +
+      '<td style="padding-left:20px;">' + salesUnit + '</td>' +
       '<td style="text-align:center;"><input type="number" class="disc-input" min="0" max="100" step="1" value="' + disc + '" oninput="setItemDisc(\'' + p.sku + '\', this.value)"> %</td>' +
       '<td style="text-align:right;">' + (unitP > 0 ? unitP.toFixed(3) : '—') + '</td>' +
       '<td style="text-align:right;">' + (unitP > 0 ? subtotal.toFixed(2) : '—') + '</td>' +
       '</tr>';
   }).join('');
 
-  var totalAfterProj = totalNet * (1 - projDisc / 100);
-  var perPanel       = (_quoteTotalPanels > 0 && totalAfterProj > 0) ? totalAfterProj / _quoteTotalPanels : 0;
-  var wtStr          = totalWeight > 0 ? totalWeight.toFixed(2) + '\u00a0kg' : '—';
-  var C = 7; // total columns
+  var perPanel = (_quoteTotalPanels > 0 && totalNet > 0) ? totalNet / _quoteTotalPanels : 0;
+  var wtStr    = totalWeight > 0 ? totalWeight.toFixed(2) + '\u00a0kg' : '—';
   var ft  = 'padding:8px 6px;border-bottom:none;';
   var ftr = ft  + 'text-align:right;';
   var ftb = ft  + 'border-top:2px solid #1A1A1A;font-weight:600;';
   var ftbr= ftb + 'text-align:right;';
 
   // columns: [item][img][wt][unit][disc][price][sub] = 7
-  // weight goes in col 2 (wt column), prices in col 6 (sub column)
   var bdrT = 'border-top:2px solid #1A1A1A;';
   tfoot.innerHTML =
     '<tr>' +
@@ -1572,12 +1560,8 @@ function renderQuoteTable() {
       '<td style="' + ftr + bdrT + '">' + (totalNet>0?'€\u00a0'+totalNet.toFixed(2):'—') + '</td>' +
     '</tr>' +
     '<tr>' +
-      '<td colspan="6" style="' + ft + 'text-align:right;">' + (isZh?'项目折扣':'Project Discount') + '</td>' +
-      '<td style="' + ftr + '">' + projDisc + '%</td>' +
-    '</tr>' +
-    '<tr>' +
       '<td colspan="6" style="' + ftb + 'text-align:right;">' + (isZh?'总价':'Total') + '</td>' +
-      '<td style="' + ftbr + '">' + (totalAfterProj>0?'€\u00a0'+totalAfterProj.toFixed(2):'—') + '</td>' +
+      '<td style="' + ftbr + '">' + (totalNet>0?'€\u00a0'+totalNet.toFixed(2):'—') + '</td>' +
     '</tr>' +
     '<tr>' +
       '<td colspan="6" style="' + ft + 'text-align:right;">€ / Panel</td>' +
@@ -1587,7 +1571,6 @@ function renderQuoteTable() {
 
 // ── helpers shared by both exports ──
 function _quoteCalcRows() {
-  var projDisc = Math.max(0, Math.min(100, parseInt(document.getElementById('projectDiscount').value)||0));
   var rows = [], totalNet = 0, totalWeight = 0;
   _quotePacks.forEach(function(p) {
     var unitLabel = lang==='zh' ? (p.unitZh||'个/包') : (p.unitEn||'pcs/pack');
@@ -1602,9 +1585,8 @@ function _quoteCalcRows() {
     totalWeight += wt;
     rows.push({ p:p, totalQty:totalQty, salesUnit:salesUnit, unitP:unitP, disc:disc, sub:sub, wt:wt });
   });
-  var totalAfterProj = totalNet * (1 - projDisc/100);
-  var perPanel = (_quoteTotalPanels>0 && totalAfterProj>0) ? totalAfterProj/_quoteTotalPanels : 0;
-  return { rows:rows, totalNet:totalNet, totalWeight:totalWeight, projDisc:projDisc, totalAfterProj:totalAfterProj, perPanel:perPanel };
+  var perPanel = (_quoteTotalPanels>0 && totalNet>0) ? totalNet/_quoteTotalPanels : 0;
+  return { rows:rows, totalNet:totalNet, totalWeight:totalWeight, perPanel:perPanel };
 }
 
 function _bomRows() {
@@ -1650,9 +1632,7 @@ function exportQuoteExcel() {
   });
   rows1.push([]);
   // col layout: [SKU][Name][Wt][SalesUnit][Disc%][Unit€][Sub€]
-  rows1.push(['','', d.totalWeight>0?+d.totalWeight.toFixed(2):0,'', isZh?'小计':'Subtotal','', d.totalNet>0?+d.totalNet.toFixed(2):'—']);
-  rows1.push(['','','','', isZh?'项目折扣':'Proj. Discount','', d.projDisc+'%']);
-  rows1.push(['','','','', isZh?'总价':'Total','', d.totalAfterProj>0?+d.totalAfterProj.toFixed(2):'—']);
+  rows1.push(['','', d.totalWeight>0?+d.totalWeight.toFixed(2):0,'', isZh?'总价':'Total','', d.totalNet>0?+d.totalNet.toFixed(2):'—']);
   rows1.push(['','','','', '€ / Panel','', d.perPanel>0?+d.perPanel.toFixed(3):'—']);
 
   var ws1 = XLSX.utils.aoa_to_sheet(rows1);
