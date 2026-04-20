@@ -994,16 +994,12 @@ document.getElementById('quantity').addEventListener('keypress', e => { if(e.key
 // ════════════════════════════════════════════
 //  Panel Size & Orientation
 // ════════════════════════════════════════════
-const PANEL_SIZES_DEFAULT = [
-  { id: 'p1', label: '1762×1134×30mm', w: 1762, h: 1134, t: 30, available: true }
-];
-
-let currentPanelSize = 'p1';
+let currentPanelSize = '';
 let currentOrientation = 'portrait'; // 'portrait' | 'landscape'
 
 function getAllPanelSizes() {
   var dbPanels = getDbPanels();
-  var result = PANEL_SIZES_DEFAULT.slice();
+  var result = [];
   dbPanels.forEach(function(p) {
     var dims = [p.width, p.height, p.thickness].filter(Boolean).join('×');
     var label = (p.nameZh || p.nameEn || '') + (dims ? ' (' + dims + 'mm)' : '');
