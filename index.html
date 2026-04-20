@@ -1503,16 +1503,14 @@ function backToRoundup() {
 }
 
 function setItemDisc(sku, val) {
-  _itemDiscs[sku] = Math.max(0, Math.min(100, Number(val) || 0));
-  renderQuoteTable();
+  _itemDiscs[sku] = Number(val) || 0; // store raw; clamp only on render/export
+  _updateQuoteTotals();
 }
 
 function renderQuoteTable() {
   const isZh     = lang === 'zh';
   const tbody    = document.getElementById('quoteTableBody');
-  const tfoot    = document.getElementById('quoteTableFoot');
-  const projDisc = Math.max(0, Math.min(100, parseInt(document.getElementById('projectDiscount').value) || 0));
-  let totalNet = 0, totalWeight = 0;
+  const tfoot    = document.getElementById('quoteTableFoot'); // eslint-disable-line no-unused-vars
 
   // Update bilingual headers
   var hdr = { item: isZh?'料号 / 名称':'ITEM', img: isZh?'图片':'IMAGE',
@@ -1538,8 +1536,6 @@ function renderQuoteTable() {
     var disc      = (_itemDiscs[p.sku] !== undefined) ? _itemDiscs[p.sku] : 0;
     var subtotal  = p.count * unitP * (1 - disc / 100);
     var wt        = p.count * (p.weight || 0);
-    totalNet    += subtotal;
-    totalWeight += wt;
     var imgSrc    = (p.images && p.images.length) ? p.images[0] : '';
     var imgTag    = imgSrc ? '<img src="' + imgSrc + '" style="width:44px;height:36px;object-fit:contain;display:block;margin:auto;">' : '<div style="width:44px;height:36px;background:#f5f5f5;margin:auto;border-radius:3px;"></div>';
     return '<tr>' +
@@ -1549,9 +1545,34 @@ function renderQuoteTable() {
       '<td style="padding-left:48px;">' + salesUnit + '</td>' +
       '<td style="text-align:center;"><input type="number" class="disc-input" min="0" max="100" step="1" value="' + disc + '" oninput="setItemDisc(\'' + p.sku + '\', this.value)"> %</td>' +
       '<td style="text-align:right;">' + (unitP > 0 ? unitP.toFixed(3) : '—') + '</td>' +
-      '<td style="text-align:right;">' + (unitP > 0 ? subtotal.toFixed(2) : '—') + '</td>' +
+      '<td style="text-align:right;" data-sku="' + p.sku + '">' + (unitP > 0 ? subtotal.toFixed(2) : '—') + '</td>' +
       '</tr>';
   }).join('');
+
+  _updateQuoteTotals();
+}
+
+function _updateQuoteTotals() {
+  var isZh    = lang === 'zh';
+  var tfoot   = document.getElementById('quoteTableFoot');
+  var tbody   = document.getElementById('quoteTableBody');
+  var projDisc = Math.max(0, Math.min(100, parseInt(document.getElementById('projectDiscount').value) || 0));
+  var totalNet = 0, totalWeight = 0;
+
+  _quotePacks.forEach(function(p, i) {
+    var disc  = Math.max(0, Math.min(100, _itemDiscs[p.sku] || 0));
+    var unitP = p.price || 0;
+    var sub   = p.count * unitP * (1 - disc / 100);
+    var wt    = p.count * (p.weight || 0);
+    totalNet    += sub;
+    totalWeight += wt;
+    // update subtotal cell in-place without destroying the row
+    var row = tbody && tbody.rows[i];
+    if (row) {
+      var cell = row.cells[6];
+      if (cell) cell.textContent = (unitP > 0 ? sub.toFixed(2) : '—');
+    }
+  });
 
   var totalAfterProj = totalNet * (1 - projDisc / 100);
   var perPanel = (_quoteTotalPanels > 0 && totalAfterProj > 0) ? totalAfterProj / _quoteTotalPanels : 0;
@@ -1560,9 +1581,8 @@ function renderQuoteTable() {
   var ftr = ft  + 'text-align:right;';
   var ftb = ft  + 'border-top:2px solid #1A1A1A;font-weight:600;';
   var ftbr= ftb + 'text-align:right;';
-
-  // columns: [item][img][wt][unit][disc][price][sub] = 7
   var bdrT = 'border-top:2px solid #1A1A1A;';
+
   tfoot.innerHTML =
     '<tr>' +
       '<td colspan="2" style="' + ft + bdrT + '"></td>' +
