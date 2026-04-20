@@ -129,6 +129,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div class="sidebar-item active" id="tab-acc" onclick="showTab('acc')"><span id="sideAcc">&#128269; 单个配件</span></div>
   <div class="sidebar-item" id="tab-pkg" onclick="showTab('pkg')"><span id="sidePkg">&#128230; 配件包</span></div>
   <div class="sidebar-sep"></div>
+  <div class="sidebar-item" id="tab-panel" onclick="showTab('panel')"><span id="sidePanel">&#9788; 光伏板</span></div>
   <div class="sidebar-item" id="tab-io" onclick="showTab('io')" style="color:#888;"><span id="sideIo">&#8645; 导入/导出</span></div>
 </div>
 
@@ -149,6 +150,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       <button class="btn btn-primary" id="addPkgBtn" onclick="openPkgModal()">+ 新增配件包</button>
     </div>
     <div id="pkg-list"></div>
+  </div>
+
+  <!-- Panels -->
+  <div id="panel-panel" style="display:none;">
+    <div class="section-header">
+      <div><div class="section-title" id="secPanelTitle">光伏板</div><div class="section-sub" id="secPanelSub">可选光伏板型号、尺寸、功率等参数</div></div>
+      <button class="btn btn-primary" id="addPanelBtn" onclick="openPanelModal()">+ 新增光伏板</button>
+    </div>
+    <div id="panel-list"></div>
   </div>
 
   <!-- I/O -->
@@ -187,6 +197,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
     <div class="field-row">
       <div class="field"><label id="acc-price-label">价格 Price (€)</label><input id="acc-price" type="number" min="0" step="0.001" placeholder="0.000"></div>
+      <div class="field" id="acc-length-field"><label id="acc-length-label">长度 Length (mm)</label><input id="acc-length" type="number" min="0" step="1" placeholder="0"></div>
     </div>
     <div class="field-row">
       <div class="field"><label id="acc-brand-label">品牌 Brand</label>
@@ -468,7 +479,7 @@ const LS_LEGACY = 'pvstar_db'; // for one-time migration
 
 const DEFAULT_DB = {
   accessories: [
-    {id:'acc_rail',      partNo:'',nameZh:'导轨',      nameEn:'Rail',          imgKey:'p_rail',       images:[],weight:0,price:0,description:'',brand:'',attachments:[]},
+    {id:'acc_rail',      partNo:'',nameZh:'导轨',      nameEn:'Rail',          imgKey:'p_rail',       images:[],weight:0,length:0,price:0,description:'',brand:'',attachments:[]},
     {id:'acc_hook',      partNo:'',nameZh:'挂钩',      nameEn:'Hook',          imgKey:'p_hook',       images:[],weight:0,price:0,description:'',brand:'',attachments:[]},
     {id:'acc_end_clamp', partNo:'',nameZh:'边压块',    nameEn:'End Clamp',     imgKey:'p_end_clamp',  images:[],weight:0,price:0,description:'',brand:'',attachments:[]},
     {id:'acc_mid_clamp', partNo:'',nameZh:'中压块',    nameEn:'Mid Clamp',     imgKey:'p_inter_clamp',images:[],weight:0,price:0,description:'',brand:'',attachments:[]},
@@ -485,7 +496,8 @@ const DEFAULT_DB = {
     {id:'pkg_mid_clamp',sku:'8061040000013',nameZh:'中压块包',nameEn:'Mid Clamp Pack',imgKey:'pp_mid_clamp',images:[],weight:0,dimensions:'',price:0,description:'',brand:'',packSize:20,calcFrom:'midClamps',    contents:[{accessoryId:'acc_mid_clamp',qty:20},{accessoryId:'acc_washer',   qty:20},{accessoryId:'acc_cable_clip',qty:20}]},
     {id:'pkg_connector',sku:'8061050000017',nameZh:'连接件包',nameEn:'Connector Pack',imgKey:'pp_connector',images:[],weight:0,dimensions:'',price:0,description:'',brand:'',packSize:10,calcFrom:'railConnectors',contents:[{accessoryId:'acc_rail_conn',qty:10}]},
     {id:'pkg_accessory',sku:'8061080000008',nameZh:'配件包',  nameEn:'Accessory Pack',imgKey:'pp_accessory',images:[],weight:0,dimensions:'',price:0,description:'',brand:'',packSize:10,calcFrom:'leftEndCaps',  contents:[{accessoryId:'acc_rail_cap', qty:10},{accessoryId:'acc_grnd_lug',  qty:6}]},
-  ]
+  ],
+  panels: []
 };
 
 // ── IndexedDB open (promise singleton — safe for concurrent calls) ──
@@ -513,6 +525,7 @@ async function loadDB() {
       var d = e.target.result;
       // Strict validation: must have non-empty accessories array and packages array
       if (d && Array.isArray(d.accessories) && d.accessories.length > 0 && Array.isArray(d.packages)) {
+        if (!Array.isArray(d.panels)) d.panels = [];
         resolve(d);
       } else {
         resolve(JSON.parse(JSON.stringify(DEFAULT_DB)));
@@ -568,12 +581,13 @@ let _toastT;
 function showToast(msg,err){var el=document.getElementById('toast');el.textContent=msg;el.style.background=err?'#c00':'#000';el.classList.add('show');clearTimeout(_toastT);_toastT=setTimeout(function(){el.classList.remove('show');},3000);}
 
 function showTab(name){
-  ['acc','pkg','io'].forEach(function(t){
+  ['acc','pkg','panel','io'].forEach(function(t){
     document.getElementById('panel-'+t).style.display=t===name?'':'none';
     document.getElementById('tab-'+t).classList.toggle('active',t===name);
   });
   if(name==='acc')renderAccList();
   if(name==='pkg')renderPkgList();
+  if(name==='panel')renderPanelList();
 }
 
 /* ── Image compression (Canvas, max 600×500 JPEG 0.78) ── */
@@ -603,7 +617,7 @@ async function renderAccList(){
   if(!db.accessories.length){el.innerHTML='<div class="empty">'+ADMIN_T[adminLang].emptyAcc+'</div>';return;}
   el.innerHTML=db.accessories.map(function(a){
     var img=a.images&&a.images.length?'<img src="'+a.images[0]+'" style="width:56px;height:48px;object-fit:contain;border:1px solid #e5e5e5;margin-right:12px;flex-shrink:0;">':'<div style="width:56px;height:48px;background:#f5f5f5;margin-right:12px;flex-shrink:0;border:1px solid #f0f0f0;"></div>';
-    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+a.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+a.nameEn+'</span>'+(a.brand?'<span style="font-size:10px;background:'+(a.brand==='PVSTAR'?'#16a34a':'#1a1a1a')+';color:#fff;padding:1px 6px;margin-left:4px;border-radius:3px;">'+a.brand+'</span>':'')+(a.partNo?'<div style="font-size:11px;color:#aaa;">'+ADMIN_T[adminLang].partNo+': '+a.partNo+'</div>':'')+'</div></div><div class="card-actions"><button class="btn btn-sm" data-id="'+ a.id +'" onclick="openAccModal(this.dataset.id)">'+ ADMIN_T[adminLang].editBtn +'</button><button class="btn btn-sm btn-danger" data-id="'+ a.id +'" onclick="deleteAcc(this.dataset.id)">'+ ADMIN_T[adminLang].deleteBtn +'</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;"><span>重量: <b>'+(a.weight||'—')+'</b> kg</span><span>'+ADMIN_T[adminLang].price+': <b>'+(a.price>0?'€'+Number(a.price).toFixed(3):'—')+'</b></span>'+(a.description?'<span style="color:#aaa;">'+a.description.substring(0,80)+'</span>':'')+'</div>'+(a.attachments&&a.attachments.length?'<div style="margin-top:6px;">'+a.attachments.map(function(at){return '<a href="'+at.url+'" target="_blank" style="font-size:11px;color:#555;margin-right:8px;">📎 '+at.name+'</a>';}).join('')+'</div>':'')+'</div>';
+    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+a.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+a.nameEn+'</span>'+(a.brand?'<span style="font-size:10px;background:'+(a.brand==='PVSTAR'?'#16a34a':'#1a1a1a')+';color:#fff;padding:1px 6px;margin-left:4px;border-radius:3px;">'+a.brand+'</span>':'')+(a.partNo?'<div style="font-size:11px;color:#aaa;">'+ADMIN_T[adminLang].partNo+': '+a.partNo+'</div>':'')+'</div></div><div class="card-actions"><button class="btn btn-sm" data-id="'+ a.id +'" onclick="openAccModal(this.dataset.id)">'+ ADMIN_T[adminLang].editBtn +'</button><button class="btn btn-sm btn-danger" data-id="'+ a.id +'" onclick="deleteAcc(this.dataset.id)">'+ ADMIN_T[adminLang].deleteBtn +'</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;"><span>重量: <b>'+(a.weight||'—')+'</b> kg</span>'+(a.id==='acc_rail'&&a.length?'<span>长度: <b>'+a.length+'</b> mm</span>':'')+'<span>'+ADMIN_T[adminLang].price+': <b>'+(a.price>0?'€'+Number(a.price).toFixed(3):'—')+'</b></span>'+(a.description?'<span style="color:#aaa;">'+a.description.substring(0,80)+'</span>':'')+'</div>'+(a.attachments&&a.attachments.length?'<div style="margin-top:6px;">'+a.attachments.map(function(at){return '<a href="'+at.url+'" target="_blank" style="font-size:11px;color:#555;margin-right:8px;">📎 '+at.name+'</a>';}).join('')+'</div>':'')+'</div>';
   }).join('');
 }
 
@@ -617,6 +631,8 @@ async function openAccModal(id){
     document.getElementById('acc-nameEn').value=a?(a.nameEn||''):'';
     document.getElementById('acc-weight').value=a?(a.weight||''):'';
     document.getElementById('acc-price').value=a?(a.price||''):'';
+    document.getElementById('acc-length').value=a?(a.length||''):'';
+    document.getElementById('acc-length-field').style.display=(a&&a.id==='acc_rail')||!a?'':'none';
     document.getElementById('acc-desc').value=a?(a.description||''):'';
     document.getElementById('acc-brand').value=a?(a.brand||''):'';
     _accImgs=a&&a.images?[...a.images]:[];
@@ -641,7 +657,7 @@ async function saveAcc(){
   var db=await loadDB();
   var nameZh=document.getElementById('acc-nameZh').value.trim();
   if(!nameZh){showToast(ADMIN_T[adminLang].errNameZh,1);return;}
-  var data={id:_eAccId||('acc_'+uid()),partNo:document.getElementById('acc-partNo').value.trim(),nameZh:nameZh,nameEn:document.getElementById('acc-nameEn').value.trim(),imgKey:'',images:_accImgs,weight:parseFloat(document.getElementById('acc-weight').value)||0,price:parseFloat(document.getElementById('acc-price').value)||0,description:document.getElementById('acc-desc').value.trim(),brand:document.getElementById('acc-brand').value,attachments:_accAtts};
+  var data={id:_eAccId||('acc_'+uid()),partNo:document.getElementById('acc-partNo').value.trim(),nameZh:nameZh,nameEn:document.getElementById('acc-nameEn').value.trim(),imgKey:'',images:_accImgs,weight:parseFloat(document.getElementById('acc-weight').value)||0,length:parseFloat(document.getElementById('acc-length').value)||0,price:parseFloat(document.getElementById('acc-price').value)||0,description:document.getElementById('acc-desc').value.trim(),brand:document.getElementById('acc-brand').value,attachments:_accAtts};
   if(_eAccId){var idx=db.accessories.findIndex(function(a){return a.id===_eAccId;});if(idx!==-1){data.imgKey=db.accessories[idx].imgKey||'';db.accessories[idx]=data;}}
   else db.accessories.push(data);
   if(await saveDB(db)){showToast(_eAccId?ADMIN_T[adminLang].toastUpdated:ADMIN_T[adminLang].toastSaved);closeAccModal();renderAccList();}
@@ -650,6 +666,56 @@ async function deleteAcc(id){
   if(!confirm(ADMIN_T[adminLang].confirmDelete))return;
   var db=await loadDB();db.accessories=db.accessories.filter(function(a){return a.id!==id;});
   if(await saveDB(db)){showToast(ADMIN_T[adminLang].toastDeleted);renderAccList();}
+}
+
+/* ════════════ Panels ════════════ */
+let _ePanelId=null,_panelImgs=[];
+
+async function renderPanelList(){
+  var db=await loadDB(),el=document.getElementById('panel-list');
+  if(!db.panels||!db.panels.length){el.innerHTML='<div class="empty">暂无光伏板，点击"新增光伏板"添加。</div>';return;}
+  el.innerHTML=db.panels.map(function(p){
+    var img=p.images&&p.images.length?'<img src="'+p.images[0]+'" style="width:56px;height:48px;object-fit:contain;border:1px solid #e5e5e5;margin-right:12px;flex-shrink:0;">':'<div style="width:56px;height:48px;background:#f5f5f5;margin-right:12px;flex-shrink:0;border:1px solid #f0f0f0;"></div>';
+    var dims=[p.width,p.height,p.thickness].filter(Boolean).join('×');
+    return '<div class="card"><div class="card-header"><div style="display:flex;align-items:center;">'+img+'<div><span class="card-title">'+p.nameZh+'</span><span style="color:#888;font-size:12px;margin-left:6px;">/ '+p.nameEn+'</span><div style="font-size:11px;color:#aaa;">'+(dims?dims+' mm':'')+(p.power?' | '+p.power+' W':'')+'</div></div></div><div class="card-actions"><button class="btn btn-sm" data-id="'+p.id+'" onclick="openPanelModal(this.dataset.id)">编辑</button><button class="btn btn-sm btn-danger" data-id="'+p.id+'" onclick="deletePanel(this.dataset.id)">删除</button></div></div><div style="font-size:12px;color:#666;display:flex;gap:20px;flex-wrap:wrap;"><span>重量: <b>'+(p.weight||'—')+'</b> kg</span><span>功率: <b>'+(p.power||'—')+'</b> W</span><span>尺寸: <b>'+(dims||'—')+'</b> mm</span></div></div>';
+  }).join('');
+}
+
+async function openPanelModal(id){
+  try{
+    _ePanelId=id||null;_panelImgs=[];
+    var db=await loadDB(),p=id?db.panels.find(function(x){return x.id===id;}):null;
+    document.getElementById('panelModalTitle').textContent=id?'编辑光伏板':'新增光伏板';
+    document.getElementById('panel-nameZh').value=p?(p.nameZh||''):'';
+    document.getElementById('panel-nameEn').value=p?(p.nameEn||''):'';
+    document.getElementById('panel-width').value=p?(p.width||''):'';
+    document.getElementById('panel-height').value=p?(p.height||''):'';
+    document.getElementById('panel-thickness').value=p?(p.thickness||''):'';
+    document.getElementById('panel-weight').value=p?(p.weight||''):'';
+    document.getElementById('panel-power').value=p?(p.power||''):'';
+    _panelImgs=p&&p.images?[...p.images]:[];
+    renderPanelImgs();
+    document.getElementById('panelModal').classList.add('open');
+  }catch(e){showToast('打开失败: '+e.message,1);}
+}
+function closePanelModal(){document.getElementById('panelModal').classList.remove('open');}
+function uploadPanelImages(ev){var files=Array.from(ev.target.files);ev.target.value='';Promise.all(files.map(function(f){return compressImage(f).then(function(d){if(d){_panelImgs.push(d);renderPanelImgs();}});}));}
+function renderPanelImgs(){document.getElementById('panel-images').innerHTML=_panelImgs.map(function(s,i){return '<div class="img-thumb"><img src="'+s+'"><button class="del-img" onclick="_panelImgs.splice('+i+',1);renderPanelImgs()">x</button></div>';}).join('');}
+
+async function savePanel(){
+  var db=await loadDB();
+  var nameZh=document.getElementById('panel-nameZh').value.trim();
+  if(!nameZh){showToast('请填写中文名称',1);return;}
+  if(!db.panels)db.panels=[];
+  var data={id:_ePanelId||('panel_'+uid()),nameZh:nameZh,nameEn:document.getElementById('panel-nameEn').value.trim(),width:parseInt(document.getElementById('panel-width').value)||0,height:parseInt(document.getElementById('panel-height').value)||0,thickness:parseInt(document.getElementById('panel-thickness').value)||0,weight:parseFloat(document.getElementById('panel-weight').value)||0,power:parseInt(document.getElementById('panel-power').value)||0,images:_panelImgs};
+  if(_ePanelId){var idx=db.panels.findIndex(function(p){return p.id===_ePanelId;});if(idx!==-1)db.panels[idx]=data;}
+  else db.panels.push(data);
+  if(await saveDB(db)){showToast(_ePanelId?'已更新':'已保存');closePanelModal();renderPanelList();}
+}
+async function deletePanel(id){
+  if(!confirm('确认删除此光伏板？'))return;
+  var db=await loadDB();db.panels=(db.panels||[]).filter(function(p){return p.id!==id;});
+  if(await saveDB(db)){showToast('已删除');renderPanelList();}
 }
 
 /* ════════════ Packages ════════════ */
@@ -834,5 +900,34 @@ function changePwSubmit() {
   } catch(e) { console.error('Init error:', e); }
 })();
 </script>
+<!-- Panel Modal -->
+<div id="panelModal" class="modal-overlay" onclick="if(event.target===this)closePanelModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closePanelModal()">&times;</button>
+    <div class="modal-title" id="panelModalTitle">新增光伏板</div>
+    <div class="field-row">
+      <div class="field"><label>名称（中文）*</label><input id="panel-nameZh" placeholder="例：370W 单晶"></div>
+      <div class="field"><label>Name (EN)</label><input id="panel-nameEn" placeholder="e.g. 370W Mono"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>宽度 Width (mm)</label><input id="panel-width" type="number" min="0" step="1" placeholder="1762"></div>
+      <div class="field"><label>高度 Height (mm)</label><input id="panel-height" type="number" min="0" step="1" placeholder="1134"></div>
+      <div class="field"><label>厚度 Thickness (mm)</label><input id="panel-thickness" type="number" min="0" step="1" placeholder="30"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>重量 Weight (kg)</label><input id="panel-weight" type="number" min="0" step="0.1" placeholder="0.0"></div>
+      <div class="field"><label>功率 Power (W)</label><input id="panel-power" type="number" min="0" step="1" placeholder="370"></div>
+    </div>
+    <div class="field">
+      <label>图片 Images</label>
+      <label class="btn btn-sm" style="cursor:pointer;display:inline-block;margin-bottom:6px;">+ 上传图片 <input type="file" accept="image/*" multiple style="display:none;" onchange="uploadPanelImages(event)"></label>
+      <div class="img-list" id="panel-images"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closePanelModal()">取消</button>
+      <button class="btn btn-primary" onclick="savePanel()">保存</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

@@ -994,21 +994,37 @@ document.getElementById('quantity').addEventListener('keypress', e => { if(e.key
 // ════════════════════════════════════════════
 //  Panel Size & Orientation
 // ════════════════════════════════════════════
-const PANEL_SIZES = [
+const PANEL_SIZES_DEFAULT = [
   { id: 'p1', label: '1762×1134×30mm', w: 1762, h: 1134, t: 30, available: true }
-  // future sizes added here
 ];
 
 let currentPanelSize = 'p1';
 let currentOrientation = 'portrait'; // 'portrait' | 'landscape'
 
+function getAllPanelSizes() {
+  var dbPanels = getDbPanels();
+  var result = PANEL_SIZES_DEFAULT.slice();
+  dbPanels.forEach(function(p) {
+    var dims = [p.width, p.height, p.thickness].filter(Boolean).join('×');
+    var label = (p.nameZh || p.nameEn || '') + (dims ? ' (' + dims + 'mm)' : '');
+    result.push({ id: p.id, label: label, w: p.width || 0, h: p.height || 0, t: p.thickness || 0, available: true, _db: p });
+  });
+  return result;
+}
+
 function buildPanelSelector() {
   const t = T[lang];
   document.getElementById('panelSizeLabel').textContent = t.panelSizeLabel;
+  const allSizes = getAllPanelSizes();
+
+  // Auto-select first if currentPanelSize no longer exists
+  if (!allSizes.find(function(p) { return p.id === currentPanelSize; })) {
+    currentPanelSize = allSizes[0] ? allSizes[0].id : 'p1';
+  }
 
   // Size chips
   const sizeBox = document.getElementById('panelSizeOptions');
-  sizeBox.innerHTML = PANEL_SIZES.map(p => `
+  sizeBox.innerHTML = allSizes.map(p => `
     <button onclick="selectPanelSize('${p.id}')" id="psize-${p.id}"
       style="padding:5px 12px;font-size:12px;border:1px solid ${currentPanelSize===p.id?'#000':'#ccc'};
              background:${currentPanelSize===p.id?'#000':'#fff'};
@@ -1038,7 +1054,8 @@ function buildPanelSelector() {
 }
 
 function selectPanelSize(id) {
-  const panel = PANEL_SIZES.find(p => p.id === id);
+  const allSizes = getAllPanelSizes();
+  const panel = allSizes.find(p => p.id === id);
   if (!panel || !panel.available) return;
   currentPanelSize = id;
   buildPanelSelector();
@@ -1147,7 +1164,7 @@ const PVSTAR_PACKS = [
 // ════════════════════════════════════════════
 const DEFAULT_PVSTAR_DB = {
   accessories: [
-    { id:'acc_rail',       partNo:'', nameZh:'导轨',       nameEn:'Rail',           imgKey:'p_rail',        images:[], weight:0, price:0, description:'', attachments:[] },
+    { id:'acc_rail',       partNo:'', nameZh:'导轨',       nameEn:'Rail',           imgKey:'p_rail',        images:[], weight:0, length:0, price:0, description:'', attachments:[] },
     { id:'acc_hook',       partNo:'', nameZh:'挂钩',       nameEn:'Hook',           imgKey:'p_hook',        images:[], weight:0, price:0, description:'', attachments:[] },
     { id:'acc_end_clamp',  partNo:'', nameZh:'边压块',     nameEn:'End Clamp',      imgKey:'p_end_clamp',   images:[], weight:0, price:0, description:'', attachments:[] },
     { id:'acc_mid_clamp',  partNo:'', nameZh:'中压块',     nameEn:'Mid Clamp',      imgKey:'p_inter_clamp', images:[], weight:0, price:0, description:'', attachments:[] },
@@ -1164,7 +1181,8 @@ const DEFAULT_PVSTAR_DB = {
     { id:'pkg_mid_clamp', sku:'8061040000013', nameZh:'中压块包', nameEn:'Mid Clamp Pack', imgKey:'pp_mid_clamp', images:[], weight:0, dimensions:'', price:0, description:'', packSize:20, calcFrom:'midClamps',     contents:[{accessoryId:'acc_mid_clamp', qty:20},{accessoryId:'acc_washer',    qty:20},{accessoryId:'acc_cable_clip',qty:20}] },
     { id:'pkg_connector', sku:'8061050000017', nameZh:'连接件包', nameEn:'Connector Pack', imgKey:'pp_connector', images:[], weight:0, dimensions:'', price:0, description:'', packSize:10, calcFrom:'railConnectors',contents:[{accessoryId:'acc_rail_conn', qty:10}] },
     { id:'pkg_accessory', sku:'8061080000008', nameZh:'配件包',   nameEn:'Accessory Pack', imgKey:'pp_accessory', images:[], weight:0, dimensions:'', price:0, description:'', packSize:10, calcFrom:'leftEndCaps',   contents:[{accessoryId:'acc_rail_cap',  qty:10},{accessoryId:'acc_grnd_lug',   qty:6}] },
-  ]
+  ],
+  panels: []
 };
 
 // IndexedDB helpers (shared with admin.html)
@@ -1193,7 +1211,12 @@ function _loadIDB() {
       var req = idb.transaction(_IDB_STORE,'readonly').objectStore(_IDB_STORE).get(_IDB_KEY);
       req.onsuccess = function(e) {
         var d = e.target.result;
-        resolve(d && d.packages && d.packages.length > 0 ? d : JSON.parse(JSON.stringify(DEFAULT_PVSTAR_DB)));
+        if (d && d.packages && d.packages.length > 0) {
+          if (!Array.isArray(d.panels)) d.panels = [];
+          resolve(d);
+        } else {
+          resolve(JSON.parse(JSON.stringify(DEFAULT_PVSTAR_DB)));
+        }
       };
       req.onerror = function() { resolve(JSON.parse(JSON.stringify(DEFAULT_PVSTAR_DB))); };
     });
@@ -1220,7 +1243,7 @@ function initPvstarDB() {
       }
     }
   } catch(e) {}
-  return _loadIDB().then(function(db) { _pvstarDBCache = db; });
+  return _loadIDB().then(function(db) { _pvstarDBCache = db; buildPanelSelector(); });
 }
 
 // Merge DB image/price data into a PVSTAR_PACKS-compatible list
@@ -1241,6 +1264,17 @@ function getEffectivePacks() {
       nameEn:      dbPkg && dbPkg.nameEn      ? dbPkg.nameEn      : p.nameEn
     });
   });
+}
+
+function getRailLength() {
+  const db = getPvstarDB();
+  const rail = db.accessories && db.accessories.find(function(a) { return a.id === 'acc_rail'; });
+  return (rail && rail.length) ? rail.length : 0;
+}
+
+function getDbPanels() {
+  const db = getPvstarDB();
+  return Array.isArray(db.panels) ? db.panels : [];
 }
 
 
