@@ -49,6 +49,10 @@ body{font-family:'Inter',sans-serif;background:#FAF9F7;color:#1A1A1A;overflow-x:
 .brand-tab::after{content:'';position:absolute;bottom:-2px;left:50%;width:0;height:2px;background:#D97706;transition:all .3s ease;transform:translateX(-50%)}
 .brand-tab:hover::after{width:50%}
 .brand-tab.active::after{width:100%}
+.mode-btn{padding:5px 14px;font-size:12px;font-weight:500;border:1px solid #e5e5e5;background:#fff;color:#666;cursor:pointer;transition:all .2s;border-radius:4px;font-family:'Inter',sans-serif;}
+.mode-btn.active{background:#1A1A1A;color:#fff;border-color:#1A1A1A;}
+.mode-btn:hover:not(.active){background:#f3f4f6;}
+.horiz-help-btn{width:20px;height:20px;border-radius:50%;border:1px solid #D97706;background:#FFF7ED;color:#D97706;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0;padding:0;}
 .brand-tab.locked{opacity:.45;cursor:not-allowed}
 
 .formula-display{padding:14px;background:#FFF7ED;border-left:3px solid #D97706;font-family:'Courier New',monospace;font-size:13px;opacity:0;transform:translateX(-20px);transition:all .3s ease;border-radius:0 6px 6px 0;}
@@ -297,6 +301,25 @@ body{font-family:'Inter',sans-serif;background:#FAF9F7;color:#1A1A1A;overflow-x:
           </h2>
 
           <div class="space-y-6">
+            <!-- Install mode toggle -->
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <button id="btn-vertical" class="mode-btn active" onclick="setInstallMode('vertical')" id="btn-vertical">竖装</button>
+              <button id="btn-horizontal" class="mode-btn" onclick="setInstallMode('horizontal')">横装</button>
+              <button class="horiz-help-btn" onclick="openHorizHelp()">?</button>
+            </div>
+            <!-- Horizontal options (hidden by default) -->
+            <div id="horiz-options" style="display:none;padding:10px 14px;background:#FFF7ED;border-left:3px solid #D97706;border-radius:0 6px 6px 0;font-size:13px;">
+              <div id="rail-len-warn" style="display:none;color:#D97706;font-size:12px;margin-bottom:8px;">⚠️ <span id="rail-len-warn-text">请先在后台「单个配件」中设置导轨长度</span></div>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:8px;">
+                <input type="checkbox" id="useOffcutsChk" onchange="useOffcutsH=this.checked;document.getElementById('offcut-row').style.display=this.checked?'flex':'none';">
+                <span id="use-offcuts-label">使用余料 / Use offcuts</span>
+              </label>
+              <div id="offcut-row" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span id="offcut-min-label" style="font-size:12px;color:#666;">最小余料长度:</span>
+                <input id="offcutMinInput" type="number" min="0" step="50" value="500" onchange="offcutMinH=Number(this.value)||500" style="width:72px;padding:3px 6px;border:1px solid #e5e5e5;font-size:13px;text-align:center;border-radius:4px;font-family:'Inter',sans-serif;">
+                <span style="font-size:12px;color:#666;">mm</span>
+              </div>
+            </div>
             <div>
               <label class="block text-sm font-medium mb-3" data-i18n="arrangementLabel">选择排列方式（每排组件块数）</label>
               <div class="grid grid-cols-4 gap-2 mb-4" id="radioGroup">
@@ -580,6 +603,14 @@ const T = {
     ],
     adminBtn: '&#9881; 后台管理',
     toastSwitch: '请先点击「清空」删除当前所有场景，再切换安装系统品牌',
+    verticalMode: '竖装',
+    horizontalMode: '横装',
+    railLenRequired: '请先在后台「单个配件」中配置导轨长度',
+    panelRequired: '请先选择光伏板规格',
+    horizHelpTitle: '横装安装说明',
+    horizHelpBody: 'PVSTAR和Clenergy支架支持导轨90°旋转，旋转后的计算方式和竖装一样，只有在不旋转同时横装时才采用横装的计算方式。',
+    horizHelpLblV: '竖装 Vertical',
+    horizHelpLblH: '横装 Horizontal',
     panelSizeLabel: '光伏板规格',
     orientPortrait: '竖装',
     orientLandscape: '横装（即将推出）'
@@ -653,6 +684,14 @@ const T = {
     ],
     adminBtn: '⚙ Admin',
     toastSwitch: 'Please clear all scenarios before switching mounting system brand',
+    verticalMode: 'Vertical',
+    horizontalMode: 'Horizontal',
+    railLenRequired: 'Please configure rail length in Admin → Accessories (acc_rail)',
+    panelRequired: 'Please select a panel size first',
+    horizHelpTitle: 'Horizontal Installation Guide',
+    horizHelpBody: 'PVSTAR and Clenergy brackets support 90° rail rotation. When rotated, the calculation is the same as vertical. Horizontal calculation only applies when rails are NOT rotated.',
+    horizHelpLblV: 'Vertical (竖装)',
+    horizHelpLblH: 'Horizontal (横装)',
     panelSizeLabel: 'Panel Size',
     orientPortrait: 'Portrait',
     orientLandscape: 'Landscape (Coming Soon)'
@@ -681,6 +720,8 @@ function setLang(l) {
   buildPanelSelector();
   const ab = document.getElementById('adminBtn'); if(ab) ab.innerHTML = T[l] && T[l].adminBtn ? T[l].adminBtn : (l==='zh'?'&#9881; 后台管理':'&#9881; Admin');
   const rl = document.getElementById('pvstarRoundupBtnLabel'); if(rl) rl.textContent = lang==='zh' ? '计算销售包装数量' : 'Round Up Sales Units';
+  document.getElementById('btn-vertical').textContent   = T[l].verticalMode   || '竖装';
+  document.getElementById('btn-horizontal').textContent = T[l].horizontalMode  || '横装';
 }
 
 // ════════════════════════════════════════════
@@ -689,10 +730,12 @@ function setLang(l) {
 function buildRadios() {
   const t = T[lang];
   const group = document.getElementById('radioGroup');
-  const currentVal = (document.querySelector('input[name="arrangement"]:checked') || {value:'1'}).value;
-  group.innerHTML = Array.from({length:12},(_,i)=>i+1).map(n => `
+  const maxN = installMode === 'horizontal' ? 8 : 12;
+  const currentVal = parseInt((document.querySelector('input[name="arrangement"]:checked') || {value:'1'}).value) || 1;
+  const clampedVal = Math.min(currentVal, maxN);
+  group.innerHTML = Array.from({length:maxN},(_,i)=>i+1).map(n => `
     <div class="flex items-center space-x-2">
-      <input type="radio" id="arr-${n}" name="arrangement" value="${n}" class="w-4 h-4" ${n==currentVal?'checked':''}>
+      <input type="radio" id="arr-${n}" name="arrangement" value="${n}" class="w-4 h-4" ${n==clampedVal?'checked':''}>
       <label for="arr-${n}" class="text-sm cursor-pointer">${n} ${t.perRow}</label>
     </div>`).join('');
 }
@@ -830,13 +873,26 @@ function updateResultCardsVisibility(brand) {
 function addScenario() {
   const arrangement = parseInt(document.querySelector('input[name="arrangement"]:checked').value) || 1;
   const quantity    = parseInt(document.getElementById('quantity').value) || 1;
-  const existing    = scenarios.find(s => s.arrangement === arrangement);
-  if (existing) {
-    existing.quantity   += quantity;
-    existing.panelCount  = existing.arrangement * existing.quantity;
-    existing.rowCount    = existing.quantity;
+
+  if (installMode === 'horizontal') {
+    var horizResult = calcHorizComponents(arrangement, quantity);
+    if (!horizResult) {
+      var x = getRailLength();
+      showToast(x ? (T[lang].panelRequired || '请先选择光伏板规格') : (T[lang].railLenRequired || '请先配置导轨长度'));
+      return;
+    }
+    // Horizontal scenarios are never merged (each may have different rail optimisation)
+    scenarios.push({ id: Date.now(), arrangement, quantity, panelCount: arrangement * quantity, rowCount: quantity, mode: 'horizontal', _horizResult: horizResult });
   } else {
-    scenarios.push({ id: Date.now(), arrangement, quantity, panelCount: arrangement * quantity, rowCount: quantity });
+    const existing = scenarios.find(s => s.arrangement === arrangement && (!s.mode || s.mode === 'vertical'));
+    if (existing) {
+      existing.quantity   += quantity;
+      existing.panelCount  = existing.arrangement * existing.quantity;
+      existing.rowCount    = existing.quantity;
+      existing.mode        = 'vertical';
+    } else {
+      scenarios.push({ id: Date.now(), arrangement, quantity, panelCount: arrangement * quantity, rowCount: quantity, mode: 'vertical' });
+    }
   }
   updateScenarioList();
   document.getElementById('calculateTotalBtn').disabled = false;
@@ -852,12 +908,20 @@ function updateScenarioList() {
     document.getElementById('calculateTotalBtn').disabled = true;
     return;
   }
-  list.innerHTML = scenarios.map(s => `
+  list.innerHTML = scenarios.map(s => {
+    var isH = s.mode === 'horizontal';
+    var modeLabel = isH ? (lang==='zh'?'横':'H') : (lang==='zh'?'竖':'V');
+    var modeBg = isH ? 'background:#D97706;color:#fff;' : 'background:#e5e5e5;color:#555;';
+    var extraInfo = isH && s._horizResult
+      ? `<span style="font-size:10px;color:#D97706;"> · ${s._horizResult._n||s.arrangement}×${s._horizResult._y||0}mm L${s._horizResult._L||0}mm</span>`
+      : '';
+    return `
     <div class="scenario-item animate-slide-up">
       <button class="remove-btn" onclick="removeScenario(${s.id})"><svg class="inline w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button>
-      <div class="font-medium text-sm">${s.arrangement} ${t.perRow} × ${s.quantity} ${t.rows}</div>
+      <div class="font-medium text-sm"><span style="font-size:10px;padding:1px 5px;border-radius:3px;margin-right:4px;${modeBg}">${modeLabel}</span>${s.arrangement} ${t.perRow} × ${s.quantity} ${t.rows}${extraInfo}</div>
       <div class="text-xs text-gray-500">${t.total} ${s.panelCount} ${t.panels}</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function removeScenario(id) {
@@ -875,9 +939,116 @@ function clearAllScenarios() {
 }
 
 // ════════════════════════════════════════════
+//  Horizontal mode functions
+// ════════════════════════════════════════════
+function setInstallMode(mode) {
+  installMode = mode;
+  var isH = mode === 'horizontal';
+  document.getElementById('btn-vertical').classList.toggle('active', !isH);
+  document.getElementById('btn-horizontal').classList.toggle('active', isH);
+  document.getElementById('horiz-options').style.display = isH ? 'block' : 'none';
+  if (isH) {
+    var x = getRailLength();
+    document.getElementById('rail-len-warn').style.display = x ? 'none' : 'block';
+    var t = T[lang];
+    if (t.railLenRequired) document.getElementById('rail-len-warn-text').textContent = t.railLenRequired;
+  }
+  buildRadios();
+}
+
+function openHorizHelp() {
+  var t = T[lang];
+  if (t.horizHelpTitle) document.getElementById('horiz-help-title').textContent = t.horizHelpTitle;
+  if (t.horizHelpBody)  document.getElementById('horiz-help-body').textContent  = t.horizHelpBody;
+  if (t.horizHelpLblV)  document.getElementById('horiz-help-lbl-v').textContent = t.horizHelpLblV;
+  if (t.horizHelpLblH)  document.getElementById('horiz-help-lbl-h').textContent = t.horizHelpLblH;
+  document.getElementById('horizHelpModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+function closeHorizHelp() {
+  document.getElementById('horizHelpModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function bestFitGreedy(pieces, rawLen, minOff) {
+  var offcuts = [], rawCount = 0;
+  for (var i = 0; i < pieces.length; i++) {
+    var need = pieces[i];
+    if (need > rawLen) return Infinity;
+    offcuts.sort(function(a,b){return a-b;});
+    var idx = -1;
+    for (var j = 0; j < offcuts.length; j++) { if (offcuts[j] >= need) { idx = j; break; } }
+    if (idx !== -1) {
+      var rem = offcuts[idx] - need;
+      offcuts.splice(idx, 1);
+      if (rem >= minOff) offcuts.push(rem);
+    } else {
+      rawCount++;
+      var rem2 = rawLen - need;
+      if (rem2 >= minOff) offcuts.push(rem2);
+    }
+  }
+  return rawCount;
+}
+
+function calcHorizComponents(n, rowCount) {
+  var x = getRailLength();
+  if (!x) return null;
+  var allSizes = getAllPanelSizes();
+  var panel = allSizes.find(function(p) { return p.id === currentPanelSize; });
+  var y = panel ? Math.max(panel.w || 0, panel.h || 0) : 0;
+  if (!y) return null;
+
+  var L = n * y + 100;               // finished rail length per strand (mm)
+  var k = Math.floor(L / x);         // full raw-rail pieces per strand
+  var t = L - k * x;                 // tail length per strand
+
+  var N_rail, N_railc;
+  if (useOffcutsH && t > 0) {
+    var tails = [];
+    for (var i = 0; i < 2 * rowCount; i++) tails.push(t);
+    var tailRails = bestFitGreedy(tails, x, offcutMinH);
+    if (tailRails === Infinity) return null;
+    N_rail = k * 2 * rowCount + tailRails;
+  } else {
+    N_rail = Math.ceil(L / x) * 2 * rowCount;
+  }
+  N_railc = (Math.ceil(L / x) - 1) * 2 * rowCount;
+
+  var N_mc   = (n - 1) * 2;
+  var N_ec   = 4;
+  var N_hook = n < 3 ? n * 4 : (n - 2) * 3 + 8;
+
+  return {
+    rails:          N_rail,
+    railConnectors: N_railc,
+    midClamps:      N_mc * rowCount,
+    endClamps:      N_ec * rowCount,
+    hooks:          N_hook * rowCount,
+    washers:        (N_mc + N_ec) * rowCount,
+    cableClips:     N_mc * rowCount,
+    leftEndCaps:    2 * rowCount,
+    rightEndCaps:   0,
+    railEndCaps:    0,
+    lightningClips: n * rowCount,
+    panelCount:     n * rowCount,
+    _x: x, _y: y, _L: L, _n: n
+  };
+}
+
+// ════════════════════════════════════════════
 //  Calculation
 // ════════════════════════════════════════════
 function calculateSingleScenario(scenario) {
+  if (scenario.mode === 'horizontal') {
+    var h = scenario._horizResult;
+    return {
+      rails: h.rails, hooks: h.hooks||0, endClamps: h.endClamps, midClamps: h.midClamps,
+      railConnectors: h.railConnectors, railEndCaps: h.railEndCaps||0,
+      washers: h.washers, cableClips: h.cableClips, lightningClips: h.lightningClips,
+      leftEndCaps: h.leftEndCaps, rightEndCaps: h.rightEndCaps||0
+    };
+  }
   const { arrangement: n, quantity: rowCount, panelCount } = scenario;
   let r = {};
   if (currentBrand === 'clenergy') {
@@ -1288,6 +1459,11 @@ const ROUNDUP_QTY_ITEMS = [
 ];
 
 let _lastTotForRoundup = null;
+
+// ── Horizontal mode state ──
+let installMode  = 'vertical'; // 'vertical' | 'horizontal'
+let useOffcutsH  = false;
+let offcutMinH   = 500;        // mm
 
 let _packAdjustments = {};   // { sku: delta }
 let _currentPackCounts = {}; // { sku: finalCount }
@@ -1780,6 +1956,29 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') { closeRoundupModal(); closeQuoteModal(); }
 });
 </script>
+
+<!-- Horizontal Install Help Modal -->
+<div id="horizHelpModal" style="display:none;position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,.5);overflow-y:auto;backdrop-filter:blur(2px);" onclick="if(event.target===this)closeHorizHelp()">
+  <div style="background:#fff;max-width:660px;margin:40px auto;border-radius:12px;padding:28px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <button onclick="closeHorizHelp()" style="position:absolute;top:12px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:#aaa;">&times;</button>
+    <div style="font-size:1.05rem;font-weight:500;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #E8E4DF;" id="horiz-help-title">横装安装说明</div>
+    <p style="font-size:13px;color:#444;line-height:1.7;margin-bottom:16px;" id="horiz-help-body">PVSTAR和Clenergy支架支持导轨90°旋转，旋转后的计算方式和竖装一样，只有在不旋转同时横装时才采用横装的计算方式。</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div style="text-align:center;">
+        <div style="font-size:12px;color:#888;margin-bottom:6px;" id="horiz-help-lbl-v">竖装 Vertical</div>
+        <img src="竖装.png" alt="竖装" style="width:100%;border:1px solid #e5e5e5;border-radius:6px;object-fit:contain;max-height:220px;">
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:12px;color:#888;margin-bottom:6px;" id="horiz-help-lbl-h">横装 Horizontal</div>
+        <img src="横装.png" alt="横装" style="width:100%;border:1px solid #e5e5e5;border-radius:6px;object-fit:contain;max-height:220px;">
+      </div>
+    </div>
+    <video controls style="width:100%;border-radius:6px;" preload="none">
+      <source src="chs.mp4" type="video/mp4">
+      Your browser does not support video.
+    </video>
+  </div>
+</div>
 
 </body>
 </html>
