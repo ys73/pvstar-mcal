@@ -78,8 +78,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div id="auth-box">
     <div style="margin-bottom:20px;">
       <div style="display:inline-block;background:#16a34a;color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;letter-spacing:.06em;margin-bottom:10px;">PVSTAR</div>
-      <h2>后台数据管理</h2>
-      <p>请输入管理员密码以继续</p>
+      <h2 id="auth-title">后台数据管理</h2>
+      <p id="auth-subtitle">请输入管理员密码以继续</p>
     </div>
     <input id="auth-pw" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')authSubmit()">
     <div id="auth-err"></div>
@@ -105,22 +105,22 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <div id="chgpw-overlay" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:12px;padding:36px 44px;width:380px;box-shadow:0 12px 40px rgba(0,0,0,.2);position:relative;">
     <button onclick="closeChangePw()" style="position:absolute;top:12px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:#aaa;">&times;</button>
-    <div style="font-size:1rem;font-weight:500;margin-bottom:20px;">&#128274; 修改管理员密码</div>
+    <div id="chgpw-title" style="font-size:1rem;font-weight:500;margin-bottom:20px;">&#128274; 修改管理员密码</div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div>
-        <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">当前密码</label>
+        <label id="chgpw-cur-label" style="font-size:12px;color:#555;display:block;margin-bottom:4px;">当前密码</label>
         <input id="chgpw-cur" type="password" placeholder="Current password" style="width:100%;padding:9px 12px;border:1px solid #E8E4DF;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='#E8E4DF'">
       </div>
       <div>
-        <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">新密码</label>
+        <label id="chgpw-new-label" style="font-size:12px;color:#555;display:block;margin-bottom:4px;">新密码</label>
         <input id="chgpw-new" type="password" placeholder="New password (min 6 chars)" style="width:100%;padding:9px 12px;border:1px solid #E8E4DF;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='#E8E4DF'">
       </div>
       <div>
-        <label style="font-size:12px;color:#555;display:block;margin-bottom:4px;">确认新密码</label>
+        <label id="chgpw-cfm-label" style="font-size:12px;color:#555;display:block;margin-bottom:4px;">确认新密码</label>
         <input id="chgpw-cfm" type="password" placeholder="Confirm new password" style="width:100%;padding:9px 12px;border:1px solid #E8E4DF;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='#E8E4DF'" onkeydown="if(event.key==='Enter')changePwSubmit()">
       </div>
       <div id="chgpw-err" style="font-size:12px;color:#dc2626;min-height:16px;"></div>
-      <button onclick="changePwSubmit()" style="padding:10px;background:#D97706;color:#fff;border:none;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;font-weight:500;transition:background .2s;" onmouseover="this.style.background='#B45309'" onmouseout="this.style.background='#D97706'">确认修改</button>
+      <button id="chgpw-submit-btn" onclick="changePwSubmit()" style="padding:10px;background:#D97706;color:#fff;border:none;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;font-weight:500;transition:background .2s;" onmouseover="this.style.background='#B45309'" onmouseout="this.style.background='#D97706'">确认修改</button>
     </div>
   </div>
 </div>
@@ -370,6 +370,11 @@ const ADMIN_T = {
     toastSaved:'配件已添加',toastUpdated:'配件已更新',toastPkgSaved:'配件包已添加',toastPkgUpdated:'配件包已更新',
     toastDeleted:'已删除',toastExported:'已导出 pvstar_data.json',toastReset:'已重置为默认数据',
     toastMigrated:'已自动将旧数据迁移到 IndexedDB',
+    authTitle:'后台数据管理',authSubtitle:'请输入管理员密码以继续',authBtn:'进入管理后台',
+    authErrEmpty:'请输入密码',authErrWrong:'密码错误，请重试',
+    chgpwTitle:'🔒 修改管理员密码',chgpwCurLabel:'当前密码',chgpwNewLabel:'新密码',chgpwCfmLabel:'确认新密码',
+    chgpwSubmitBtn:'确认修改',chgpwErrFields:'请填写所有字段',chgpwErrShort:'新密码至少6位',
+    chgpwErrMismatch:'两次输入的新密码不一致',chgpwErrWrong:'当前密码错误',chgpwSuccess:'密码已修改成功',
     confirmDelete:'确定删除？',confirmImport:'导入将覆盖当前数据，确定？',confirmReset:'确定要清除所有数据并恢复默认？此操作不可撤销！',
     errNameZh:'请填写名称（中文）',errSaveFail:'保存失败',errOpenFail:'打开失败',
     errImportFmt:'格式错误',errImportFail:'导入失败',errResetFail:'重置失败',
@@ -404,6 +409,11 @@ const ADMIN_T = {
     toastSaved:'Accessory added',toastUpdated:'Accessory updated',toastPkgSaved:'Package added',toastPkgUpdated:'Package updated',
     toastDeleted:'Deleted',toastExported:'Exported pvstar_data.json',toastReset:'Reset to defaults',
     toastMigrated:'Legacy data migrated to IndexedDB',
+    authTitle:'Admin Panel',authSubtitle:'Enter admin password to continue',authBtn:'Enter Admin',
+    authErrEmpty:'Please enter a password',authErrWrong:'Incorrect password, please try again',
+    chgpwTitle:'🔒 Change Admin Password',chgpwCurLabel:'Current password',chgpwNewLabel:'New password',chgpwCfmLabel:'Confirm new password',
+    chgpwSubmitBtn:'Confirm',chgpwErrFields:'Please fill in all fields',chgpwErrShort:'New password must be at least 6 characters',
+    chgpwErrMismatch:'Passwords do not match',chgpwErrWrong:'Current password is incorrect',chgpwSuccess:'Password changed successfully',
     confirmDelete:'Delete this item?',confirmImport:'This will overwrite current data. Continue?',confirmReset:'Reset all data to defaults? This cannot be undone!',
     errNameZh:'Please enter a name',errSaveFail:'Save failed',errOpenFail:'Open failed',
     errImportFmt:'Invalid format',errImportFail:'Import failed',errResetFail:'Reset failed',
@@ -494,6 +504,16 @@ function setAdminLang(l) {
   if (pkgPanel && pkgPanel.style.display !== 'none') renderPkgList();
   var settPanel = document.getElementById('panel-settings');
   if (settPanel && settPanel.style.display !== 'none') loadInstallSettings();
+  // Auth overlay
+  var at=document.getElementById('auth-title'); if(at) at.textContent=T.authTitle||'后台数据管理';
+  var as=document.getElementById('auth-subtitle'); if(as) as.textContent=T.authSubtitle||'请输入管理员密码以继续';
+  var ab=document.getElementById('auth-btn'); if(ab) ab.textContent=T.authBtn||'进入管理后台';
+  // Change-pw modal
+  var ct=document.getElementById('chgpw-title'); if(ct) ct.textContent=T.chgpwTitle||'🔒 修改管理员密码';
+  var cl1=document.getElementById('chgpw-cur-label'); if(cl1) cl1.textContent=T.chgpwCurLabel||'当前密码';
+  var cl2=document.getElementById('chgpw-new-label'); if(cl2) cl2.textContent=T.chgpwNewLabel||'新密码';
+  var cl3=document.getElementById('chgpw-cfm-label'); if(cl3) cl3.textContent=T.chgpwCfmLabel||'确认新密码';
+  var csb=document.getElementById('chgpw-submit-btn'); if(csb) csb.textContent=T.chgpwSubmitBtn||'确认修改';
 }
 // ── Global error catcher ──
 window.onerror = function(msg, src, line) {
@@ -910,12 +930,13 @@ function _getAdminPw() { return localStorage.getItem('pvstar_admin_pw') || _DEFA
 function authSubmit() {
   var pw  = document.getElementById('auth-pw').value;
   var err = document.getElementById('auth-err');
-  if (!pw) { err.textContent = '请输入密码'; return; }
+  var T   = ADMIN_T[adminLang];
+  if (!pw) { err.textContent = T.authErrEmpty || '请输入密码'; return; }
   if (pw === _getAdminPw()) {
     sessionStorage.setItem('pvstar_admin_auth','1');
     document.getElementById('auth-overlay').style.display = 'none';
   } else {
-    err.textContent = '密码错误，请重试';
+    err.textContent = T.authErrWrong || '密码错误，请重试';
     document.getElementById('auth-pw').value = '';
     document.getElementById('auth-pw').focus();
   }
@@ -935,13 +956,14 @@ function changePwSubmit() {
   var cfm = document.getElementById('chgpw-cfm').value;
   var err = document.getElementById('chgpw-err');
   err.textContent = '';
-  if (!cur || !nw || !cfm) { err.textContent = '请填写所有字段'; return; }
-  if (nw.length < 6)       { err.textContent = '新密码至少6位'; return; }
-  if (nw !== cfm)          { err.textContent = '两次输入的新密码不一致'; return; }
-  if (cur !== _getAdminPw()) { err.textContent = '当前密码错误'; return; }
+  var T = ADMIN_T[adminLang];
+  if (!cur || !nw || !cfm) { err.textContent = T.chgpwErrFields || '请填写所有字段'; return; }
+  if (nw.length < 6)       { err.textContent = T.chgpwErrShort || '新密码至少6位'; return; }
+  if (nw !== cfm)          { err.textContent = T.chgpwErrMismatch || '两次输入的新密码不一致'; return; }
+  if (cur !== _getAdminPw()) { err.textContent = T.chgpwErrWrong || '当前密码错误'; return; }
   localStorage.setItem('pvstar_admin_pw', nw);
   closeChangePw();
-  showToast('密码已修改成功');
+  showToast(T.chgpwSuccess || '密码已修改成功');
 }
 (function checkAuth(){
   if (sessionStorage.getItem('pvstar_admin_auth') === '1') {
