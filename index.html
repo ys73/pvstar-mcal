@@ -992,7 +992,7 @@ function updateScenarioList() {
     <div class="scenario-item animate-slide-up">
       <button class="remove-btn" onclick="removeScenario(${s.id})"><svg class="inline w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button>
       <div class="font-medium text-sm"><span style="font-size:10px;padding:1px 5px;border-radius:3px;margin-right:4px;${modeBg}">${modeLabel}</span>${s.arrangement} ${t.perRow} × ${s.quantity} ${t.rows}${extraInfo}</div>
-      <div class="text-xs text-gray-500">${t.total} ${s.panelCount} ${t.panels}${isH ? ` <button onclick="event.stopPropagation();openHorizDetail(${s.id})" style="font-size:10px;padding:1px 6px;border:1px solid #D97706;color:#D97706;background:#FFF7ED;cursor:pointer;border-radius:3px;margin-left:6px;">详情</button>` : ''}</div>
+      <div class="text-xs text-gray-500">${t.total} ${s.panelCount} ${t.panels}</div>
     </div>`;
   }).join('');
 }
