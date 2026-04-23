@@ -875,14 +875,23 @@ function addScenario() {
   const quantity    = parseInt(document.getElementById('quantity').value) || 1;
 
   if (installMode === 'horizontal') {
-    var horizResult = calcHorizComponents(arrangement, quantity);
+    const existingH = scenarios.find(s => s.arrangement === arrangement && s.mode === 'horizontal');
+    const newRowCount = existingH ? existingH.rowCount + quantity : quantity;
+    var horizResult = calcHorizComponents(arrangement, newRowCount);
     if (!horizResult) {
       var x = getRailLength();
       showToast(x ? (T[lang].panelRequired || '请先选择光伏板规格') : (T[lang].railLenRequired || '请先配置导轨长度'));
       return;
     }
-    // Horizontal scenarios are never merged (each may have different rail optimisation)
-    scenarios.push({ id: Date.now(), arrangement, quantity, panelCount: arrangement * quantity, rowCount: quantity, mode: 'horizontal', _horizResult: horizResult, _useOffcuts: useOffcutsH });
+    if (existingH) {
+      existingH.quantity   = newRowCount;
+      existingH.rowCount   = newRowCount;
+      existingH.panelCount = arrangement * newRowCount;
+      existingH._horizResult = horizResult;
+      existingH._useOffcuts  = useOffcutsH;
+    } else {
+      scenarios.push({ id: Date.now(), arrangement, quantity, panelCount: arrangement * quantity, rowCount: quantity, mode: 'horizontal', _horizResult: horizResult, _useOffcuts: useOffcutsH });
+    }
   } else {
     const existing = scenarios.find(s => s.arrangement === arrangement && (!s.mode || s.mode === 'vertical'));
     if (existing) {
