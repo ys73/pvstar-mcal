@@ -373,6 +373,7 @@ const ADMIN_T = {
     packContents:'包内配件：',editBtn:'编辑',deleteBtn:'删除',
     emptyAcc:'暂无配件，点击"新增配件"添加',emptyPkg:'暂无配件包，点击"新增配件包"添加',
     toastSaved:'配件已添加',toastUpdated:'配件已更新',toastPkgSaved:'配件包已添加',toastPkgUpdated:'配件包已更新',
+    warnBrandMismatch:function(names){return '以下配件品牌与配件包品牌不一致，请检查后再保存：\n'+names;},
     toastDeleted:'已删除',toastExported:'已导出 pvstar_data.json',toastReset:'已重置为默认数据',
     toastMigrated:'已自动将旧数据迁移到 IndexedDB',
     authTitle:'后台数据管理',authSubtitle:'请输入管理员密码以继续',authBtn:'进入管理后台',
@@ -417,6 +418,7 @@ const ADMIN_T = {
     packContents:'Contents:',editBtn:'Edit',deleteBtn:'Delete',
     emptyAcc:'No accessories. Click "New Accessory" to add.',emptyPkg:'No packages. Click "New Package" to add.',
     toastSaved:'Accessory added',toastUpdated:'Accessory updated',toastPkgSaved:'Package added',toastPkgUpdated:'Package updated',
+    warnBrandMismatch:function(names){return 'The following accessories do not match the package brand. Please review before saving:\n'+names;},
     toastDeleted:'Deleted',toastExported:'Exported pvstar_data.json',toastReset:'Reset to defaults',
     toastMigrated:'Legacy data migrated to IndexedDB',
     authTitle:'Admin Panel',authSubtitle:'Enter admin password to continue',authBtn:'Enter Admin',
@@ -881,6 +883,18 @@ async function savePkg(){
   var db=await loadDB();
   var nameZh=document.getElementById('pkg-nameZh').value.trim();
   if(!nameZh){showToast(ADMIN_T[adminLang].errNameZh,1);return;}
+  // Brand mismatch check
+  var pkgBrand=document.getElementById('pkg-brand').value;
+  if(pkgBrand){
+    var mismatched=_pkgContents.filter(function(c){
+      var acc=db.accessories.find(function(a){return a.id===c.accessoryId;});
+      return acc&&acc.brand&&acc.brand!==pkgBrand;
+    }).map(function(c){
+      var acc=db.accessories.find(function(a){return a.id===c.accessoryId;});
+      return (acc.nameZh||acc.nameEn||c.accessoryId)+' ('+acc.brand+')';
+    });
+    if(mismatched.length){showToast(ADMIN_T[adminLang].warnBrandMismatch(mismatched.join('、')),1);return;}
+  }
   var _pkgMeta=derivePackMeta(_pkgContents);
   var data={id:_ePkgId||('pkg_'+uid()),sku:document.getElementById('pkg-sku').value.trim(),nameZh:nameZh,nameEn:document.getElementById('pkg-nameEn').value.trim(),imgKey:'',images:_pkgImgs,weight:parseFloat(document.getElementById('pkg-weight').value)||0,dimensions:(function(){var _l=document.getElementById('pkg-dim-l').value.trim(),_w=document.getElementById('pkg-dim-w').value.trim(),_h=document.getElementById('pkg-dim-h').value.trim();return (_l||_w||_h)?_l+'×'+_w+'×'+_h:'';})(),price:parseFloat(document.getElementById('pkg-price').value)||0,description:document.getElementById('pkg-desc').value.trim(),brand:document.getElementById('pkg-brand').value,packSize:_pkgMeta.packSize,calcFrom:_pkgMeta.calcFrom||document.getElementById("pkg-calcFrom").value,contents:_pkgContents.filter(function(c){return c.accessoryId;})};
   if(_ePkgId){var idx=db.packages.findIndex(function(p){return p.id===_ePkgId;});if(idx!==-1){data.imgKey=db.packages[idx].imgKey||'';db.packages[idx]=data;}}
