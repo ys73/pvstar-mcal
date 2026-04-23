@@ -313,12 +313,12 @@ body{font-family:'Inter',sans-serif;background:#FAF9F7;color:#1A1A1A;overflow-x:
               <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
                 <div>
                   <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:8px;">
-                    <input type="checkbox" id="useOffcutsChk" onchange="useOffcutsH=this.checked;document.getElementById('offcut-row').style.display=this.checked?'flex':'none';">
+                    <input type="checkbox" id="useOffcutsChk" onchange="useOffcutsH=this.checked;document.getElementById('offcut-row').style.display=this.checked?'flex':'none';markResultsStale();">
                     <span id="use-offcuts-label">使用余料 / Use offcuts</span>
                   </label>
                   <div id="offcut-row" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
                     <span id="offcut-min-label" style="font-size:12px;color:#666;">最小余料长度:</span>
-                    <input id="offcutMinInput" type="number" min="0" step="50" value="0" onchange="offcutMinH=Number(this.value)" style="width:72px;padding:3px 6px;border:1px solid #e5e5e5;font-size:13px;text-align:center;border-radius:4px;font-family:'Inter',sans-serif;">
+                    <input id="offcutMinInput" type="number" min="0" step="50" value="0" onchange="offcutMinH=Number(this.value);markResultsStale();var _rx=getRailLength();if(_rx&&offcutMinH>_rx/2)showToast((T[lang].offcutMinWarn||'提示：余料最小长度超过导轨长度的1/2，余料可能无法被有效复用'));" style="width:72px;padding:3px 6px;border:1px solid #e5e5e5;font-size:13px;text-align:center;border-radius:4px;font-family:'Inter',sans-serif;">
                     <span style="font-size:12px;color:#666;">mm</span>
                   </div>
                 </div>
@@ -382,6 +382,12 @@ body{font-family:'Inter',sans-serif;background:#FAF9F7;color:#1A1A1A;overflow-x:
           <span data-i18n="resultsTitle">计算结果</span>
           <div class="absolute bottom-0 left-0 w-full h-px bg-black"></div>
         </h2>
+
+        <!-- Stale results banner -->
+        <div id="stale-banner" style="display:none;align-items:center;gap:8px;padding:10px 14px;background:#FEF9C3;border:1px solid #FDE047;border-radius:8px;margin-bottom:12px;font-size:13px;color:#854D0E;">
+          <svg style="flex-shrink:0;width:16px;height:16px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+          <span id="stale-banner-text">输入条件已变更，请重新点击"计算总需求"重新计算</span>
+        </div>
 
         <div id="resultsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
@@ -634,7 +640,11 @@ const T = {
     hd_tab1_th:['成品导轨','长度','构成（mm）','单条连接件'],
     hd_full_seg:'整段', hd_tail_seg:'尾段', hd_type:'类型',
     hd_tab3_empty:'无尾段（成品长度均为原料整数倍）',
-    hd_rail:'导轨', hd_raw_rail:'原料'
+    hd_rail:'导轨', hd_raw_rail:'原料',
+    staleBanner:'输入条件已变更，请重新点击"计算总需求"重新计算',
+    horizPrintBtn:'🖨 打印切割清单',
+    horizDetailTitle:'横装计算详情',
+    offcutMinWarn:'提示：余料最小长度超过导轨长度的1/2，余料将无法跨导轨复用'
   },
   en: {
     pageTitle:        'Pitched Roof PV Mounting System Calculator',
@@ -735,7 +745,11 @@ const T = {
     hd_tab1_th:['Finished Rail','Length','Composition (mm)','Connectors'],
     hd_full_seg:'full', hd_tail_seg:'tail', hd_type:'Type',
     hd_tab3_empty:'No tail pieces (all finished lengths are multiples of raw rail length)',
-    hd_rail:'Rail', hd_raw_rail:'Raw'
+    hd_rail:'Rail', hd_raw_rail:'Raw',
+    staleBanner:'Inputs changed — please click "Calculate" again to update results',
+    horizPrintBtn:'🖨 Print Cutting List',
+    horizDetailTitle:'Horizontal Detail',
+    offcutMinWarn:'Note: Min offcut length exceeds half the raw rail length — offcuts cannot be shared across rails'
   }
 };
 
@@ -766,6 +780,9 @@ function setLang(l) {
   var oml = document.getElementById('offcut-min-label'); if(oml) oml.textContent = (T[l].offcutMinLabel||'最小余料长度') + ':';
   var hdb = document.getElementById('horizDetailBtn');   if(hdb) hdb.textContent = T[l].horizDetailBtn || '📊 横装详情';
   var rlw = document.getElementById('rail-len-warn-text'); if(rlw) rlw.textContent = T[l].railLenRequired || '请先配置导轨长度';
+  var sbt = document.getElementById('stale-banner-text'); if(sbt) sbt.textContent = T[l].staleBanner || '输入条件已变更，请重新点击"计算总需求"重新计算';
+  var hpb = document.getElementById('horizPrintBtn');    if(hpb) hpb.textContent = T[l].horizPrintBtn || '🖨 打印切割清单';
+  var hdt = document.getElementById('horizDetailTitle'); if(hdt) hdt.textContent = T[l].horizDetailTitle || '横装计算详情';
 }
 
 // ════════════════════════════════════════════
@@ -952,6 +969,7 @@ function addScenario() {
   document.getElementById('calculateTotalBtn').disabled = false;
   document.getElementById('quantity').value = '1';
   updateTabLockState();
+  markResultsStale();
 }
 
 function updateScenarioList() {
@@ -982,6 +1000,7 @@ function removeScenario(id) {
   scenarios = scenarios.filter(s => s.id !== id);
   updateScenarioList();
   updateTabLockState();
+  markResultsStale();
 }
 
 function clearAllScenarios() {
@@ -1349,6 +1368,7 @@ function calculateSingleScenario(scenario) {
 
 function calculateTotal() {
   if (!scenarios.length) return;
+  clearResultsStale();
   _lastHorizResult = null;
   let tot = { rails:0,hooks:0,endClamps:0,midClamps:0,railConnectors:0,
                railEndCaps:0,washers:0,cableClips:0,lightningClips:0,
@@ -1393,6 +1413,113 @@ function clearResultsUI() {
   ['railCount','hookCount','endClampCount','midClampCount','railConnectorCount',
    'railEndCapCount','washerCount','cableClipCount','lightningClipCount',
    'leftEndCapCount','rightEndCapCount'].forEach(id => document.getElementById(id).textContent='0');
+}
+
+function markResultsStale() {
+  if (_resultsStale) return;
+  _resultsStale = true;
+  var banner = document.getElementById('stale-banner');
+  if (banner) { banner.style.display = 'flex'; var t=T[lang]; banner.querySelector('#stale-banner-text').textContent = t.staleBanner || '输入条件已变更，请重新点击"计算总需求"重新计算'; }
+  var rc = document.getElementById('resultsContainer');
+  if (rc) { rc.style.opacity = '0.35'; rc.style.pointerEvents = 'none'; }
+  var rw = document.getElementById('pvstarRoundupBtnWrap');
+  if (rw) { rw.style.opacity = '0.35'; rw.style.pointerEvents = 'none'; }
+  var hdb = document.getElementById('horizDetailBtn');
+  if (hdb) { hdb.style.opacity = '0.4'; hdb.style.pointerEvents = 'none'; }
+}
+
+function clearResultsStale() {
+  _resultsStale = false;
+  var banner = document.getElementById('stale-banner');
+  if (banner) banner.style.display = 'none';
+  var rc = document.getElementById('resultsContainer');
+  if (rc) { rc.style.opacity = ''; rc.style.pointerEvents = ''; }
+  var rw = document.getElementById('pvstarRoundupBtnWrap');
+  if (rw) { rw.style.opacity = ''; rw.style.pointerEvents = ''; }
+  var hdb = document.getElementById('horizDetailBtn');
+  if (hdb) { hdb.style.opacity = ''; hdb.style.pointerEvents = ''; }
+}
+
+function printHorizCuttingList() {
+  var hr = _lastHorizResult || calcAllHorizResult();
+  var tl = T[lang];
+  if (!hr) { showToast(tl.hdCalcFirst || '请先点击"计算总需求"'); return; }
+  var x = hr.x, isZh = lang === 'zh';
+  var typeWord = tl.hd_type || '类型';
+  var fullSeg = tl.hd_full_seg || '整段';
+  var tailSeg = tl.hd_tail_seg || '尾段';
+  var railLbl = tl.hd_rail || '导轨';
+
+  function th(t) { return '<th style="text-align:left;padding:6px 10px;background:#f3f4f6;border:1px solid #d1d5db;font-size:12px;">' + t + '</th>'; }
+  function td(t, hl) { return '<td style="padding:6px 10px;border:1px solid #d1d5db;font-size:12px;' + (hl ? 'color:#92400e;font-weight:600;' : '') + '">' + t + '</td>'; }
+
+  // Section 0: Summary table
+  var thArr = tl.hd_th || [];
+  var summaryRows = hr.types.map(function(tp, i) {
+    return '<tr>' + td(typeWord + (i+1)) + td(tp.n) + td(tp.rc) + td(tp.nr) + td(tp.L.toLocaleString() + ' mm') + td(tp.k) + td(tp.t > 0 ? tp.t.toLocaleString() + ' mm' : '—') + td(tp.conn) + '</tr>';
+  }).join('');
+  var sec0 = '<h3 style="margin:20px 0 8px;font-size:14px;">' + (tl.hd_t0 || '汇总') + '</h3>'
+    + '<table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><tr>' + thArr.map(th).join('') + '</tr>' + summaryRows + '</table>';
+
+  // Section 1: Finished rails
+  var t1h = tl.hd_tab1_th || [];
+  var fr1 = '', gOff = 0;
+  hr.types.forEach(function(tp, ti) {
+    for (var i = 0; i < tp.nr; i++) {
+      var gNo = gOff + i + 1;
+      var segs = [];
+      for (var j = 0; j < tp.k; j++) segs.push('<span style="background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:3px;font-size:11px;">' + fullSeg + ' ' + x + 'mm</span>');
+      if (tp.t > 0) segs.push('<span style="background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;font-size:11px;">' + tailSeg + ' ' + tp.t + 'mm</span>');
+      fr1 += '<tr>' + td('<b>#' + gNo + '</b> (' + typeWord + (ti+1) + ')') + td(tp.L.toLocaleString() + ' mm') + td(segs.join(' ')) + td(tp.conn) + '</tr>';
+    }
+    gOff += tp.nr;
+  });
+  var sec1 = '<h3 style="margin:20px 0 8px;font-size:14px;">' + (tl.hd_t1 || '成品导轨') + '</h3>'
+    + '<table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><tr>' + t1h.map(th).join('') + '</tr>' + fr1 + '</table>';
+
+  // Section 2: Raw cutting
+  var sec2 = '<h3 style="margin:20px 0 8px;font-size:14px;">' + (tl.hd_t2 || '原料切割') + '</h3>';
+  if (hr.fullRails > 0) {
+    var fs = (tl.hd_full_supply || '整根直供：{n} 根（{x}mm）').replace('{n}', hr.fullRails).replace('{x}', x);
+    sec2 += '<p style="font-size:12px;padding:6px 10px;background:#f0fdf4;border-left:3px solid #16a34a;margin-bottom:8px;"><b>' + fs + '</b></p>';
+  }
+  if (hr.bins.length) {
+    var tn = (tl.hd_tail_new || '新开原料（为尾段）：{n} 根').replace('{n}', hr.bins.length);
+    sec2 += '<p style="font-size:13px;font-weight:600;margin-bottom:6px;">' + tn + '</p>';
+    hr.bins.forEach(function(b, bi) {
+      var used = b.reduce(function(s,p){return s+p.len;},0), left = x - used;
+      var pcs = b.map(function(p){return p.len+'mm';}).join(' + ');
+      var leftStr = left > 0 ? ' → ' + (isZh ? '余' : 'rem ') + left + 'mm' + (left >= offcutMinH ? ' ✓' : ' ✗') : '';
+      sec2 += '<p style="font-size:12px;padding:5px 8px;border:1px solid #e5e7eb;border-radius:4px;margin-bottom:4px;"><b>#' + (bi+1) + '</b> (' + x + 'mm)：' + pcs + ' = ' + used + 'mm' + leftStr + '</p>';
+    });
+  }
+  if (hr.timedOut) sec2 += '<p style="font-size:11px;color:#D97706;">⚠ ' + (tl.hd_timeout || 'DFS超时，已采用贪心近似结果') + '</p>';
+
+  // Section 3: Tail assignment
+  var sec3 = '<h3 style="margin:20px 0 8px;font-size:14px;">' + (tl.hd_t3 || '尾段分配') + '</h3>';
+  if (!hr.tails.length) {
+    sec3 += '<p style="font-size:12px;color:#888;">' + (tl.hd_tab3_empty || '无尾段') + '</p>';
+  } else {
+    hr.bins.forEach(function(b, bi) {
+      var used = b.reduce(function(s,p){return s+p.len;},0), left = x - used;
+      var pcs = b.map(function(p){return railLbl + '#' + p.railNo + ' ' + p.len + 'mm';}).join(' | ');
+      var leftStr = left > 0 ? '  ' + (isZh ? '余' : 'rem ') + left + 'mm' + (left >= offcutMinH ? ' ✓' : ' ✗') : '';
+      sec3 += '<p style="font-size:12px;padding:5px 8px;border:1px solid #e5e7eb;border-radius:4px;margin-bottom:4px;"><b>' + (tl.hd_raw_rail||'原料') + '#' + (bi+1) + '</b>：' + pcs + leftStr + '</p>';
+    });
+  }
+
+  var title = isZh ? 'PVSTAR 横装切割清单' : 'PVSTAR Horizontal Cutting List';
+  var win = window.open('', '_blank');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + title + '</title>'
+    + '<style>body{font-family:Arial,sans-serif;padding:24px;max-width:900px;margin:0 auto;}h1{font-size:18px;border-bottom:2px solid #000;padding-bottom:8px;}h3{font-size:14px;border-left:3px solid #1e40af;padding-left:8px;color:#1e40af;}@media print{.no-print{display:none}}</style></head>'
+    + '<body><div class="no-print" style="margin-bottom:16px;"><button onclick="window.print()" style="padding:6px 16px;background:#1e40af;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;">🖨 ' + (isZh ? '打印' : 'Print') + '</button></div>'
+    + '<h1>' + title + '</h1>'
+    + '<p style="font-size:12px;color:#666;margin-bottom:4px;">' + (isZh ? '导轨原料长度' : 'Raw rail length') + ': ' + x + ' mm &nbsp;|&nbsp; '
+    + (isZh ? '成品导轨总条数' : 'Total finished rails') + ': ' + hr.totalFinished + ' &nbsp;|&nbsp; '
+    + (isZh ? '需原料总根数' : 'Total raw rails') + ': ' + hr.totalRaw + '</p>'
+    + sec0 + sec1 + sec2 + sec3
+    + '</body></html>');
+  win.document.close();
 }
 
 function animateResults() {
@@ -1736,6 +1863,7 @@ const ROUNDUP_QTY_ITEMS = [
 
 let _lastTotForRoundup = null;
 let _lastHorizResult = null;
+let _resultsStale = false;
 
 // ── Horizontal mode state ──
 let installMode  = 'vertical'; // 'vertical' | 'horizontal'
@@ -2320,7 +2448,10 @@ document.addEventListener('keydown', function(e) {
 <div id="horizDetailModal" style="display:none;position:fixed;inset:0;z-index:9991;background:rgba(0,0,0,.5);overflow-y:auto;backdrop-filter:blur(2px);" onclick="if(event.target===this)closeHorizDetail()">
   <div style="background:#fff;max-width:880px;margin:40px auto;border-radius:12px;padding:28px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2);">
     <button onclick="closeHorizDetail()" style="position:absolute;top:12px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:#aaa;">&times;</button>
-    <div style="font-size:1.05rem;font-weight:500;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #E8E4DF;">横装计算详情</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #E8E4DF;">
+      <span id="horizDetailTitle" style="font-size:1.05rem;font-weight:500;">横装计算详情</span>
+      <button onclick="printHorizCuttingList()" id="horizPrintBtn" style="font-size:12px;padding:5px 12px;border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;color:#374151;font-family:inherit;">🖨 打印切割清单</button>
+    </div>
     <div id="horizDetailContent"></div>
   </div>
 </div>
