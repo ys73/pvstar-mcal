@@ -640,7 +640,7 @@ const T = {
     hd_tab1_th:['成品导轨','长度','构成（mm）','单条连接件'],
     hd_full_seg:'整段', hd_tail_seg:'尾段', hd_type:'类型',
     hd_tab3_empty:'无尾段（成品长度均为原料整数倍）',
-    hd_rail:'导轨', hd_raw_rail:'原料',
+    hd_rail:'导轨', hd_raw_rail:'原料', hd_rem:'余',
     staleBanner:'输入条件已变更，请重新点击"计算总需求"重新计算',
     horizPrintBtn:'🖨 打印切割清单',
     horizDetailTitle:'横装计算详情',
@@ -745,7 +745,7 @@ const T = {
     hd_tab1_th:['Finished Rail','Length','Composition (mm)','Connectors'],
     hd_full_seg:'full', hd_tail_seg:'tail', hd_type:'Type',
     hd_tab3_empty:'No tail pieces (all finished lengths are multiples of raw rail length)',
-    hd_rail:'Rail', hd_raw_rail:'Raw',
+    hd_rail:'Rail', hd_raw_rail:'Raw', hd_rem:'rem.',
     staleBanner:'Inputs changed — please click "Calculate" again to update results',
     horizPrintBtn:'🖨 Print Cutting List',
     horizDetailTitle:'Horizontal Detail',
@@ -780,6 +780,7 @@ function setLang(l) {
   var oml = document.getElementById('offcut-min-label'); if(oml) oml.textContent = (T[l].offcutMinLabel||'最小余料长度') + ':';
   var hdb = document.getElementById('horizDetailBtn');   if(hdb) hdb.textContent = T[l].horizDetailBtn || '📊 横装详情';
   var rlw = document.getElementById('rail-len-warn-text'); if(rlw) rlw.textContent = T[l].railLenRequired || '请先配置导轨长度';
+  document.querySelectorAll('.lang-content').forEach(function(el){el.style.display=el.getAttribute('data-lang')===l?'':'none';});
   var sbt = document.getElementById('stale-banner-text'); if(sbt) sbt.textContent = T[l].staleBanner || '输入条件已变更，请重新点击"计算总需求"重新计算';
   var hpb = document.getElementById('horizPrintBtn');    if(hpb) hpb.textContent = T[l].horizPrintBtn || '🖨 打印切割清单';
   var hdt = document.getElementById('horizDetailTitle'); if(hdt) hdt.textContent = T[l].horizDetailTitle || '横装计算详情';
@@ -1125,7 +1126,7 @@ function openHorizDetail(sid) {
       return '<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:4px;font-size:11px;margin-right:4px;">'
         +'<b>'+railLbl+'#'+p.railNo+'</b> '+p.len+'mm</span>';
     }).join('');
-    var ls=left>0?'<span style="background:'+(left>=offcutMinH?'#d1fae5;color:#065f46':'#fee2e2;color:#991b1b')+';padding:3px 8px;border-radius:4px;font-size:11px;margin-left:2px;">余'+left+'mm</span>':'';
+    var ls=left>0?'<span style="background:'+(left>=offcutMinH?'#d1fae5;color:#065f46':'#fee2e2;color:#991b1b')+';padding:3px 8px;border-radius:4px;font-size:11px;margin-left:2px;">'+(tl.hd_rem||'余')+left+'mm</span>':'';
     return '<div style="padding:8px 10px;border:1px solid #e5e5e5;border-radius:6px;margin-bottom:6px;font-size:12px;">'
       +'<span style="font-weight:600;margin-right:8px;">'+(tl.hd_raw_rail||'原料')+'#'+(bi+1)+'</span>'+pcs+ls+'</div>';
   }).join(''):'<p style="color:#888;font-size:13px;">'+(tl.hd_tab3_empty||'无尾段')+'</p>';
@@ -2385,33 +2386,65 @@ document.addEventListener('keydown', function(e) {
     </div>
     <!-- Tab 0: Vertical formula -->
     <div id="help-page-0" style="padding:24px;">
-      <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:#1A1A1A;">PVSTAR 竖装计算公式</div>
-      <ul style="font-size:13px;color:#444;line-height:2;list-style:none;padding:0;margin:0;">
-        <li>• <b>导轨</b>：每块组件 1 根</li>
-        <li>• <b>挂钩</b>：每排 2×(n+1) 个</li>
-        <li>• <b>侧压块</b>：每排 4 个</li>
-        <li>• <b>中压块</b>：每排 2×(n−1) 个</li>
-        <li>• <b>导轨连接件</b>：≤2块→0，≥3块→每排 2×round(n/2)−2</li>
-        <li>• <b>导轨端盖</b>：每排左 2 个、右 2 个（成对，共 2 对）</li>
-        <li>• <b>穿刺垫片、线夹、避雷线夹</b>已包含在配件包内</li>
-        <li style="color:#D97706;margin-top:8px;">⚠ 每排组件超过 12 片时导轨过长，为避免热胀冷缩变形，建议断开另起一排</li>
-      </ul>
+      <div class="lang-content" data-lang="zh">
+        <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:#1A1A1A;">PVSTAR 竖装计算公式</div>
+        <ul style="font-size:13px;color:#444;line-height:2;list-style:none;padding:0;margin:0;">
+          <li>• <b>导轨</b>：每块组件 1 根</li>
+          <li>• <b>挂钩</b>：每排 2×(n+1) 个</li>
+          <li>• <b>侧压块</b>：每排 4 个</li>
+          <li>• <b>中压块</b>：每排 2×(n−1) 个</li>
+          <li>• <b>导轨连接件</b>：≤2块→0，≥3块→每排 2×round(n/2)−2</li>
+          <li>• <b>导轨端盖</b>：每排左 2 个、右 2 个（成对，共 2 对）</li>
+          <li>• <b>穿刺垫片、线夹、避雷线夹</b>已包含在配件包内</li>
+          <li style="color:#D97706;margin-top:8px;">⚠ 每排组件超过 12 片时导轨过长，为避免热胀冷缩变形，建议断开另起一排</li>
+        </ul>
+      </div>
+      <div class="lang-content" data-lang="en" style="display:none;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:#1A1A1A;">PVSTAR Vertical Installation Formula</div>
+        <ul style="font-size:13px;color:#444;line-height:2;list-style:none;padding:0;margin:0;">
+          <li>• <b>Rail</b>: 1 per panel</li>
+          <li>• <b>Hook</b>: 2×(n+1) per row</li>
+          <li>• <b>End Clamp</b>: 4 per row</li>
+          <li>• <b>Mid Clamp</b>: 2×(n−1) per row</li>
+          <li>• <b>Rail Connector</b>: ≤2 panels→0; ≥3 panels→2×round(n/2)−2 per row</li>
+          <li>• <b>Rail End Cap</b>: 2 left + 2 right per row (in pairs, 2 pairs total)</li>
+          <li>• <b>Grounding clip, cable clip, lightning clip</b>: included in accessory packs</li>
+          <li style="color:#D97706;margin-top:8px;">⚠ When more than 12 panels per row, rails become too long. To avoid thermal deformation, split into a new row.</li>
+        </ul>
+      </div>
     </div>
     <!-- Tab 1: Horizontal formula + images + video -->
     <div id="help-page-1" style="padding:24px;display:none;">
-      <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:#1A1A1A;">PVSTAR 横装计算公式</div>
-      <ul style="font-size:13px;color:#444;line-height:2;list-style:none;padding:0;margin:0 0 16px;">
-        <li>• <b>导轨（不用余料）</b>：roundup((n×板长+2×突出长度) / 导轨长) × 2 × 排数</li>
-        <li>• <b>导轨（用余料）</b>：深度优先搜索 DFS 算法（贪心算法供参考）</li>
-        <li>• <b>挂钩</b>：每排 n&lt;3 → n×4，n≥3 → (n−2)×3+8</li>
-        <li>• <b>侧压块</b>：每排 4 个</li>
-        <li>• <b>中压块</b>：每排 2×(n−1) 个</li>
-        <li>• <b>导轨连接件</b>：(n×板长 + 2×突出 + (n−1)×间距) / 导轨长</li>
-        <li>• <b>导轨端盖</b>：每排左 2 个、右 2 个（成对，共 2 对）</li>
-        <li>• <b>穿刺垫片、线夹、避雷线夹</b>已包含在配件包内</li>
-        <li style="color:#D97706;margin-top:8px;">⚠ 每排组件超过 8 片时导轨过长，为避免热胀冷缩变形，建议断开另起一排</li>
-      </ul>
-      <p style="font-size:12px;color:#888;margin-bottom:14px;">PVSTAR和Clenergy支架支持导轨90°旋转，旋转后计算方式和竖装一样，只有在不旋转同时横装时才采用横装计算方式。</p>
+      <div class="lang-content" data-lang="zh">
+        <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:#1A1A1A;">PVSTAR 横装计算公式</div>
+        <ul style="font-size:13px;color:#444;line-height:2;list-style:none;padding:0;margin:0 0 16px;">
+          <li>• <b>导轨（不用余料）</b>：roundup((n×板长+2×突出长度) / 导轨长) × 2 × 排数</li>
+          <li>• <b>导轨（用余料）</b>：深度优先搜索 DFS 算法（贪心算法供参考）</li>
+          <li>• <b>挂钩</b>：每排 n&lt;3 → n×4，n≥3 → (n−2)×3+8</li>
+          <li>• <b>侧压块</b>：每排 4 个</li>
+          <li>• <b>中压块</b>：每排 2×(n−1) 个</li>
+          <li>• <b>导轨连接件</b>：(n×板长 + 2×突出 + (n−1)×间距) / 导轨长</li>
+          <li>• <b>导轨端盖</b>：每排左 2 个、右 2 个（成对，共 2 对）</li>
+          <li>• <b>穿刺垫片、线夹、避雷线夹</b>已包含在配件包内</li>
+          <li style="color:#D97706;margin-top:8px;">⚠ 每排组件超过 8 片时导轨过长，为避免热胀冷缩变形，建议断开另起一排</li>
+        </ul>
+        <p style="font-size:12px;color:#888;margin-bottom:14px;">PVSTAR和Clenergy支架支持导轨90°旋转，旋转后计算方式和竖装一样，只有在不旋转同时横装时才采用横装计算方式。</p>
+      </div>
+      <div class="lang-content" data-lang="en" style="display:none;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:#1A1A1A;">PVSTAR Horizontal Installation Formula</div>
+        <ul style="font-size:13px;color:#444;line-height:2;list-style:none;padding:0;margin:0 0 16px;">
+          <li>• <b>Rail (without offcut reuse)</b>: roundup((n×panel_length + 2×overhang) / rail_length) × 2 × rows</li>
+          <li>• <b>Rail (with offcut reuse)</b>: Depth-First Search (DFS); greedy algorithm shown for reference</li>
+          <li>• <b>Hook</b>: n&lt;3 → n×4; n≥3 → (n−2)×3+8 per row</li>
+          <li>• <b>End Clamp</b>: 4 per row</li>
+          <li>• <b>Mid Clamp</b>: 2×(n−1) per row</li>
+          <li>• <b>Rail Connector</b>: based on (n×panel_length + 2×overhang + (n−1)×gap) / rail_length</li>
+          <li>• <b>Rail End Cap</b>: 2 left + 2 right per row (in pairs, 2 pairs total)</li>
+          <li>• <b>Grounding clip, cable clip, lightning clip</b>: included in accessory packs</li>
+          <li style="color:#D97706;margin-top:8px;">⚠ When more than 8 panels per row, rails become too long. To avoid thermal deformation, split into a new row.</li>
+        </ul>
+        <p style="font-size:12px;color:#888;margin-bottom:14px;">PVSTAR and Clenergy brackets support 90° rail rotation. When rotated, the calculation is identical to vertical mode. The horizontal formula only applies when rails are installed without rotation.</p>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
         <div style="text-align:center;">
           <div style="font-size:12px;color:#888;margin-bottom:6px;">竖装 Vertical</div>
