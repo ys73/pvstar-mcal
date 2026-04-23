@@ -281,7 +281,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
     <div class="field-row">
       <div class="field"><label id="pkg-brand-label">品牌 Brand</label>
-        <select id="pkg-brand" style="width:100%;padding:8px 10px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;background:#fff;">
+        <select id="pkg-brand" style="width:100%;padding:8px 10px;border:1px solid #ddd;font-size:13px;font-family:'Inter',sans-serif;background:#fff;" onchange="onPkgBrandChange()">
           <option value="">— 未指定 —</option>
           <option value="PVSTAR">PVSTAR</option>
           <option value="KSENG">KSENG</option>
@@ -856,17 +856,25 @@ function renderPkgImgs(){document.getElementById('pkg-images').innerHTML=_pkgImg
 function removePkgImg(i){_pkgImgs.splice(i,1);renderPkgImgs();}
 
 function onContentAccChange(i,val){_pkgContents[i].accessoryId=val;var _m=derivePackMeta(_pkgContents);var cf=document.getElementById('pkg-calcFrom');if(cf&&_m.calcFrom)cf.value=_m.calcFrom;}
+function getFilteredAccOpts(allAcc) {
+  var brand = (document.getElementById('pkg-brand')||{}).value || '';
+  if (!brand) return allAcc;
+  return allAcc.filter(function(a){ return (a.brand||'') === brand; });
+}
 function renderContentsEditor(db){
   var el=document.getElementById('pkg-contents-editor');
-  var accOpts=db?db.accessories:_lastAccDb||[];
+  var allAcc=db?db.accessories:_lastAccDb||[];
   if(db)_lastAccDb=db.accessories;
+  var accOpts=getFilteredAccOpts(allAcc);
   el.innerHTML=_pkgContents.map(function(c,i){
     var opts=accOpts.map(function(a){return '<option value="'+a.id+'"'+(a.id===c.accessoryId?' selected':'')+'>'+a.nameZh+' / '+a.nameEn+'</option>';}).join('');
+    if(!opts) opts='<option value="">— 无可用配件 —</option>';
     return '<div class="content-row"><select onchange="onContentAccChange('+i+',this.value)" style="flex:1;padding:4px 6px;border:1px solid #ddd;font-size:12px;font-family:inherit;">'+opts+'</select><span style="font-size:12px;color:#666;white-space:nowrap;">× 数量</span><input type="number" class="qty-inp" min="1" value="'+(c.qty||1)+'" oninput="_pkgContents['+i+'].qty=Number(this.value)||1"><button class="btn-icon" onclick="removeContentRow('+i+')">x</button></div>';
   }).join('');
 }
 var _lastAccDb=null;
-async function addContentRow(){var db=await loadDB();var fa=db.accessories[0];_pkgContents.push({accessoryId:fa?fa.id:'',qty:1});renderContentsEditor(db);}
+function onPkgBrandChange(){renderContentsEditor(null);}
+async function addContentRow(){var db=await loadDB();var fa=getFilteredAccOpts(db.accessories)[0];_pkgContents.push({accessoryId:fa?fa.id:'',qty:1});renderContentsEditor(db);}
 async function removeContentRow(i){_pkgContents.splice(i,1);var db=await loadDB();renderContentsEditor(db);}
 
 async function savePkg(){
