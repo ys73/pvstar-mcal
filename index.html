@@ -310,14 +310,19 @@ body{font-family:'Inter',sans-serif;background:#FAF9F7;color:#1A1A1A;overflow-x:
             <!-- Horizontal options (hidden by default) -->
             <div id="horiz-options" style="display:none;padding:10px 14px;background:#FFF7ED;border-left:3px solid #D97706;border-radius:0 6px 6px 0;font-size:13px;">
               <div id="rail-len-warn" style="display:none;color:#D97706;font-size:12px;margin-bottom:8px;">⚠️ <span id="rail-len-warn-text">请先在后台「单个配件」中设置导轨长度</span></div>
-              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:8px;">
-                <input type="checkbox" id="useOffcutsChk" onchange="useOffcutsH=this.checked;document.getElementById('offcut-row').style.display=this.checked?'flex':'none';">
-                <span id="use-offcuts-label">使用余料 / Use offcuts</span>
-              </label>
-              <div id="offcut-row" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
-                <span id="offcut-min-label" style="font-size:12px;color:#666;">最小余料长度:</span>
-                <input id="offcutMinInput" type="number" min="0" step="50" value="0" onchange="offcutMinH=Number(this.value)" style="width:72px;padding:3px 6px;border:1px solid #e5e5e5;font-size:13px;text-align:center;border-radius:4px;font-family:'Inter',sans-serif;">
-                <span style="font-size:12px;color:#666;">mm</span>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+                <div>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-bottom:8px;">
+                    <input type="checkbox" id="useOffcutsChk" onchange="useOffcutsH=this.checked;document.getElementById('offcut-row').style.display=this.checked?'flex':'none';">
+                    <span id="use-offcuts-label">使用余料 / Use offcuts</span>
+                  </label>
+                  <div id="offcut-row" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span id="offcut-min-label" style="font-size:12px;color:#666;">最小余料长度:</span>
+                    <input id="offcutMinInput" type="number" min="0" step="50" value="0" onchange="offcutMinH=Number(this.value)" style="width:72px;padding:3px 6px;border:1px solid #e5e5e5;font-size:13px;text-align:center;border-radius:4px;font-family:'Inter',sans-serif;">
+                    <span style="font-size:12px;color:#666;">mm</span>
+                  </div>
+                </div>
+                <button onclick="openHorizDetail()" style="padding:6px 14px;border:1px solid #D97706;background:#fff;color:#D97706;font-size:12px;font-weight:500;cursor:pointer;border-radius:6px;white-space:nowrap;flex-shrink:0;" id="horizDetailBtn">📊 横装详情</button>
               </div>
             </div>
             <div>
