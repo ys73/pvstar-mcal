@@ -2054,7 +2054,34 @@ document.addEventListener('keydown', function(e) {
         </div>
         <div style="text-align:center;">
           <div style="font-size:12px;color:#888;margin-bottom:6px;">横装 Horizontal</div>
-          <img src="横装.png" alt="横装" style="width:100%;border:1px solid #e5e5e5;border-radius:6px;object-fit:contain;max-height:200px;">
+          <svg viewBox="0 0 760 390" xmlns="http://www.w3.org/2000/svg" style="width:100%;border:1px solid #e5e5e5;border-radius:6px;background:#fff;display:block;">
+            <!-- Left panel -->
+            <rect x="62" y="90" width="280" height="200" fill="#e2e2e2" stroke="#aaa" stroke-width="1.5"/>
+            <!-- Right panel -->
+            <rect x="358" y="90" width="280" height="200" fill="#e2e2e2" stroke="#aaa" stroke-width="1.5"/>
+            <!-- Rafter hooks (grey vertical lines, extend above and below panels) -->
+            <line x1="110" y1="35" x2="110" y2="345" stroke="#c0c0c0" stroke-width="3"/>
+            <line x1="202" y1="35" x2="202" y2="345" stroke="#c0c0c0" stroke-width="3"/>
+            <line x1="294" y1="35" x2="294" y2="345" stroke="#c0c0c0" stroke-width="3"/>
+            <line x1="406" y1="35" x2="406" y2="345" stroke="#c0c0c0" stroke-width="3"/>
+            <line x1="498" y1="35" x2="498" y2="345" stroke="#c0c0c0" stroke-width="3"/>
+            <line x1="590" y1="35" x2="590" y2="345" stroke="#c0c0c0" stroke-width="3"/>
+            <!-- Top rail (blue) -->
+            <rect x="28" y="130" width="706" height="25" fill="#5B8FC9"/>
+            <!-- Bottom rail (blue) -->
+            <rect x="28" y="238" width="706" height="25" fill="#5B8FC9"/>
+            <!-- Clamps (dark squares) at outer hook × rail intersections -->
+            <!-- Top rail -->
+            <rect x="93" y="121" width="34" height="43" fill="#4a4a4a" rx="2"/>
+            <rect x="277" y="121" width="34" height="43" fill="#4a4a4a" rx="2"/>
+            <rect x="389" y="121" width="34" height="43" fill="#4a4a4a" rx="2"/>
+            <rect x="573" y="121" width="34" height="43" fill="#4a4a4a" rx="2"/>
+            <!-- Bottom rail -->
+            <rect x="93" y="229" width="34" height="43" fill="#4a4a4a" rx="2"/>
+            <rect x="277" y="229" width="34" height="43" fill="#4a4a4a" rx="2"/>
+            <rect x="389" y="229" width="34" height="43" fill="#4a4a4a" rx="2"/>
+            <rect x="573" y="229" width="34" height="43" fill="#4a4a4a" rx="2"/>
+          </svg>
         </div>
       </div>
       <video controls style="width:100%;border-radius:6px;" preload="none">
