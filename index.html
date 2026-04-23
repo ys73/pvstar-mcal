@@ -1224,8 +1224,9 @@ function calcAllHorizResult() {
   if(!y)return null;
   var hScens=scenarios.filter(function(s){return s.mode==='horizontal';});
   if(!hScens.length)return null;
+  var inst=getInstallSettings(), _gap=inst.panelGap, _ov=inst.railOverhang;
   var types=hScens.map(function(s){
-    var n=s.arrangement,rc=s.rowCount,L=n*y+100;
+    var n=s.arrangement,rc=s.rowCount,L=n*y+(n-1)*_gap+2*_ov;
     var k=Math.floor(L/x),t=L-k*x,nr=2*rc;
     var segs=k+(t>0?1:0),conn=Math.max(0,segs-1);
     return{n:n,rc:rc,L:L,k:k,t:t,nr:nr,conn:conn};
@@ -1271,7 +1272,8 @@ function calcHorizComponents(n, rowCount) {
   var y = panel ? Math.max(panel.w || 0, panel.h || 0) : 0;
   if (!y) return null;
 
-  var L = n * y + 100;               // finished rail length per strand (mm)
+  var inst = getInstallSettings();
+  var L = n * y + (n - 1) * inst.panelGap + 2 * inst.railOverhang;               // finished rail length per strand (mm)
   var k = Math.floor(L / x);         // full raw-rail pieces per strand
   var t = L - k * x;                 // tail length per strand
 
@@ -1774,6 +1776,7 @@ function _loadIDB() {
         if (d && Array.isArray(d.accessories) && d.accessories.length > 0) {
           if (!Array.isArray(d.packages)) d.packages = [];
           if (!Array.isArray(d.panels))   d.panels   = [];
+          if (!d.settings) d.settings = {};
           resolve(d);
         } else {
           resolve(JSON.parse(JSON.stringify(DEFAULT_PVSTAR_DB)));
@@ -1840,6 +1843,15 @@ function getRailLength() {
   const db = getPvstarDB();
   const rail = db.accessories && db.accessories.find(function(a) { return a.id === 'acc_rail'; });
   return (rail && rail.length) ? rail.length : 0;
+}
+
+function getInstallSettings() {
+  var db = getPvstarDB();
+  var s = db.settings || {};
+  return {
+    panelGap:     s.panelGap     !== undefined ? Number(s.panelGap)     : 0,
+    railOverhang: s.railOverhang !== undefined ? Number(s.railOverhang) : 50
+  };
 }
 
 function getDbPanels() {
