@@ -614,7 +614,26 @@ const T = {
     horizHelpLblH: '横装 Horizontal',
     panelSizeLabel: '光伏板规格',
     orientPortrait: '竖装',
-    orientLandscape: '横装（即将推出）'
+    orientLandscape: '横装（即将推出）',
+    offcutMinLabel: '最小余料长度',
+    horizDetailBtn: '📊 横装详情',
+    hdTitle: '横装导轨详情',
+    hdCalcFirst: '请先点击「计算总需求」',
+    hd_finished: '成品导轨条数', hd_finished_tip: '安装时实际使用的导轨总条数，每条可能由多段原料拼接',
+    hd_total: '导轨总根数', hd_full: '其中整根直供', hd_new: '为尾段新开',
+    hd_conn: '连接件总数', hd_waste: '废料总长度', hd_reusable: '项目最终剩余可复用余料数',
+    hd_greedy: '贪心上界（参考）', hd_greedy_tip: '不使用余料复用时，贪心算法所需的导轨总根数，供对比参考',
+    hd_t0:'汇总', hd_t1:'成品导轨', hd_t2:'原料切割', hd_t3:'尾段分配',
+    hd_summary:'计算汇总',
+    hd_th:['类别','每排块数','排数','导轨条数(2×排数)','单条成品长度','整根段数','尾段需求','单条连接件'],
+    hd_reusable_lbl:'项目最终剩余可复用余料', hd_waste_lbl:'报废边角料',
+    hd_full_supply:'整根直供：{n} 根（{x}mm）', hd_full_desc:'整根段直接使用原料，无切割无废料。',
+    hd_tail_new:'新开原料（为尾段）：{n} 根',
+    hd_no_tails:'无尾段（成品长度均为原料整数倍）',
+    hd_timeout:'⚠ DFS超时，已采用贪心近似结果',
+    hd_tab1_th:['成品导轨','长度','构成（mm）','单条连接件'],
+    hd_full_seg:'整段', hd_tail_seg:'尾段', hd_type:'类型',
+    hd_tab3_empty:'无尾段（成品长度均为原料整数倍）'
   },
   en: {
     pageTitle:        'Pitched Roof PV Mounting System Calculator',
@@ -695,7 +714,26 @@ const T = {
     horizHelpLblH: 'Horizontal (横装)',
     panelSizeLabel: 'Panel Size',
     orientPortrait: 'Portrait',
-    orientLandscape: 'Landscape (Coming Soon)'
+    orientLandscape: 'Landscape (Coming Soon)',
+    offcutMinLabel: 'Min offcut length',
+    horizDetailBtn: '📊 Horiz. Detail',
+    hdTitle: 'Horizontal Rail Detail',
+    hdCalcFirst: 'Please click "Calculate Total" first',
+    hd_finished: 'Finished Rails', hd_finished_tip: 'Total finished rail pieces used on site — each may be spliced from multiple raw rails',
+    hd_total: 'Total Raw Rails', hd_full: 'Full-Length Supplied', hd_new: 'New for Tail Pieces',
+    hd_conn: 'Total Connectors', hd_waste: 'Total Waste', hd_reusable: 'Reusable Offcuts (Final)',
+    hd_greedy: 'Greedy Bound (ref.)', hd_greedy_tip: 'Total raw rails required by the greedy algorithm without offcut reuse — use as a reference upper bound',
+    hd_t0:'Summary', hd_t1:'Finished Rails', hd_t2:'Raw Cuts', hd_t3:'Tail Alloc.',
+    hd_summary:'Calculation Summary',
+    hd_th:['Type','Panels/Row','Rows','Rail Count(2×rows)','Finished Length','Full Segs','Tail Needed','Connectors/Rail'],
+    hd_reusable_lbl:'Reusable Offcuts (Final)', hd_waste_lbl:'Waste Offcuts',
+    hd_full_supply:'Full-length supply: {n} rails ({x}mm)', hd_full_desc:'Full-length segments use raw rail directly — no cutting, no waste.',
+    hd_tail_new:'New raw rails (for tails): {n}',
+    hd_no_tails:'No tail pieces (all finished lengths are multiples of raw rail length)',
+    hd_timeout:'⚠ DFS timed out — using greedy approximation',
+    hd_tab1_th:['Finished Rail','Length','Composition (mm)','Connectors'],
+    hd_full_seg:'full', hd_tail_seg:'tail', hd_type:'Type',
+    hd_tab3_empty:'No tail pieces (all finished lengths are multiples of raw rail length)'
   }
 };
 
@@ -723,6 +761,9 @@ function setLang(l) {
   const rl = document.getElementById('pvstarRoundupBtnLabel'); if(rl) rl.textContent = lang==='zh' ? '计算销售包装数量' : 'Round Up Sales Units';
   document.getElementById('btn-vertical').textContent   = T[l].verticalMode   || '竖装';
   document.getElementById('btn-horizontal').textContent = T[l].horizontalMode  || '横装';
+  var oml = document.getElementById('offcut-min-label'); if(oml) oml.textContent = (T[l].offcutMinLabel||'最小余料长度') + ':';
+  var hdb = document.getElementById('horizDetailBtn');   if(hdb) hdb.textContent = T[l].horizDetailBtn || '📊 横装详情';
+  var rlw = document.getElementById('rail-len-warn-text'); if(rlw) rlw.textContent = T[l].railLenRequired || '请先配置导轨长度';
 }
 
 // ════════════════════════════════════════════
@@ -992,93 +1033,91 @@ function switchHDTab(i) {
 }
 function openHorizDetail(sid) {
   var hr=_lastHorizResult||calcAllHorizResult();
-  if(!hr){showToast('请先点击"计算总量"');return;}
+  var tl=T[lang];
+  if(!hr){showToast(tl.hdCalcFirst||'请先点击"计算总需求"');return;}
   var x=hr.x;
-  function sc(lbl,tip,val){
+  function sc(key,val){
+    var lbl=tl[key]||key, tip=tl[key+'_tip']||'';
+    var qmark=tip?'<span onclick="alert(\''+tip.replace(/'/g,"\\'")+'\')" style="cursor:pointer;margin-left:3px;font-size:9px;border:1px solid #bbb;border-radius:50%;padding:0 3px;color:#aaa;user-select:none;">?</span>':'';
     return '<div style="background:#f8f8f8;border-radius:8px;padding:11px 8px;text-align:center;">'
-      +'<div style="font-size:11px;color:#888;margin-bottom:4px;">'+lbl+(tip?'<span title="'+tip+'" style="cursor:help;margin-left:3px;font-size:9px;border:1px solid #bbb;border-radius:50%;padding:0 3px;color:#aaa;">?</span>':'')+'</div>'
+      +'<div style="font-size:11px;color:#888;margin-bottom:4px;">'+lbl+qmark+'</div>'
       +'<div style="font-size:1.3rem;font-weight:700;color:#1A1A1A;">'+val+'</div></div>';
   }
   function TH(t){return '<th style="text-align:left;padding:6px 8px;border:1px solid #e5e5e5;background:#f8f8f8;font-size:12px;">'+t+'</th>';}
   function TD(t,o){return '<td style="padding:6px 8px;border:1px solid #e5e5e5;font-size:12px;'+(o?'color:#D97706;font-weight:600;':'')+'">'+t+'</td>';}
+  var th=tl.hd_th||[], t1h=tl.hd_tab1_th||[];
+  var typeWord=tl.hd_type||'类型', fullSeg=tl.hd_full_seg||'整段', tailSeg=tl.hd_tail_seg||'尾段';
   // Tab0 汇总
   var rows0=hr.types.map(function(tp,i){
-    return '<tr>'+TD('类型'+(i+1))+TD(tp.n)+TD(tp.rc)+TD(tp.nr)
+    return '<tr>'+TD(typeWord+(i+1))+TD(tp.n)+TD(tp.rc)+TD(tp.nr)
       +TD(tp.L.toLocaleString()+' mm')+TD(tp.k,tp.t===0)+TD(tp.t>0?tp.t.toLocaleString()+' mm':'—',tp.t>0)+TD(tp.conn)+'</tr>';
   }).join('');
-  var tab0='<div style="font-weight:600;font-size:14px;margin-bottom:10px;">计算汇总</div>'
+  var tab0='<div style="font-weight:600;font-size:14px;margin-bottom:10px;">'+(tl.hd_summary||'计算汇总')+'</div>'
     +'<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;margin-bottom:14px;">'
-    +'<tr>'+TH('类别')+TH('每排块数')+TH('排数')+TH('导轨条数(2×排数)')+TH('单条成品长度')+TH('整根段数')+TH('尾段需求')+TH('单条连接件')+'</tr>'
-    +rows0+'</table></div>'
+    +'<tr>'+th.map(TH).join('')+'</tr>'+rows0+'</table></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
     +(hr.reusable.length?'<div style="border:1px solid #e5e5e5;border-radius:8px;padding:12px;">'
-      +'<div style="font-weight:600;font-size:13px;margin-bottom:8px;">最终可复用余料</div>'
-      +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'+hr.reusable.map(function(r){return '<span style="background:#d1fae5;color:#065f46;padding:3px 8px;border-radius:12px;font-size:12px;">'+r+'</span>';}).join('')+'</div></div>':'<div></div>')
+      +'<div style="font-weight:600;font-size:13px;margin-bottom:8px;">'+(tl.hd_reusable_lbl||'项目最终剩余可复用余料')+'</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'+hr.reusable.map(function(r){return '<span style="background:#d1fae5;color:#065f46;padding:3px 8px;border-radius:12px;font-size:12px;">'+r+'mm</span>';}).join('')+'</div></div>':'<div></div>')
     +(hr.wastes.length?'<div style="border:1px solid #e5e5e5;border-radius:8px;padding:12px;">'
-      +'<div style="font-weight:600;font-size:13px;margin-bottom:8px;">报废边角料</div>'
-      +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'+hr.wastes.map(function(w){return '<span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:12px;font-size:12px;">'+w+'</span>';}).join('')+'</div></div>':'<div></div>')
+      +'<div style="font-weight:600;font-size:13px;margin-bottom:8px;">'+(tl.hd_waste_lbl||'报废边角料')+'</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'+hr.wastes.map(function(w){return '<span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:12px;font-size:12px;">'+w+'mm</span>';}).join('')+'</div></div>':'<div></div>')
     +'</div>';
   // Tab1 成品导轨
   var rows1='';
   hr.types.forEach(function(tp,ti){
     for(var i=0;i<tp.nr;i++){
       var segs=[];
-      for(var j=0;j<tp.k;j++)segs.push('<span style="background:#dbeafe;color:#1e40af;padding:2px 5px;border-radius:3px;font-size:11px;">整段 '+x+'</span>');
-      if(tp.t>0)segs.push('<span style="background:#fef3c7;color:#92400e;padding:2px 5px;border-radius:3px;font-size:11px;">尾段 '+tp.t+'</span>');
-      rows1+='<tr>'+TD('类型'+(ti+1)+'·#'+(i+1))+TD(tp.L.toLocaleString()+' mm')+TD('<div style="display:flex;flex-wrap:wrap;gap:3px;">'+segs.join('')+'</div>')+TD(tp.conn)+'</tr>';
+      for(var j=0;j<tp.k;j++)segs.push('<span style="background:#dbeafe;color:#1e40af;padding:2px 5px;border-radius:3px;font-size:11px;">'+fullSeg+' '+x+'</span>');
+      if(tp.t>0)segs.push('<span style="background:#fef3c7;color:#92400e;padding:2px 5px;border-radius:3px;font-size:11px;">'+tailSeg+' '+tp.t+'</span>');
+      rows1+='<tr>'+TD(typeWord+(ti+1)+'·#'+(i+1))+TD(tp.L.toLocaleString()+' mm')+TD('<div style="display:flex;flex-wrap:wrap;gap:3px;">'+segs.join('')+'</div>')+TD(tp.conn)+'</tr>';
     }
   });
   var tab1='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">'
-    +'<tr>'+TH('成品导轨')+TH('长度')+TH('构成（mm）')+TH('连接件')+'</tr>'+rows1+'</table></div>';
+    +'<tr>'+t1h.map(TH).join('')+'</tr>'+rows1+'</table></div>';
   // Tab2 原料切割
   var tab2='';
-  if(hr.fullRails>0)tab2+='<div style="margin-bottom:10px;padding:10px;background:#f0fdf4;border-radius:6px;border-left:3px solid #16a34a;font-size:12px;">'
-    +'<b>整根直供：'+hr.fullRails+' 根（'+x+'mm）</b><br>各成品导轨中整根段直接用原料，无切割无废料。</div>';
+  if(hr.fullRails>0){
+    var fs=(tl.hd_full_supply||'整根直供：{n} 根（{x}mm）').replace('{n}',hr.fullRails).replace('{x}',x);
+    tab2+='<div style="margin-bottom:10px;padding:10px;background:#f0fdf4;border-radius:6px;border-left:3px solid #16a34a;font-size:12px;"><b>'+fs+'</b><br>'+(tl.hd_full_desc||'整根段直接使用原料，无切割无废料。')+'</div>';
+  }
   if(hr.bins.length){
-    tab2+='<div style="font-weight:600;font-size:13px;margin-bottom:8px;">新开原料（为尾段）：'+hr.bins.length+' 根</div>';
+    var tn=(tl.hd_tail_new||'新开原料（为尾段）：{n} 根').replace('{n}',hr.bins.length);
+    tab2+='<div style="font-weight:600;font-size:13px;margin-bottom:8px;">'+tn+'</div>';
     hr.bins.forEach(function(b,bi){
       var used=b.reduce(function(s,p){return s+p;},0),left=x-used;
       var pcs=b.map(function(p){return '<span style="background:#fef3c7;color:#92400e;padding:2px 5px;border-radius:3px;font-size:11px;">'+p+'</span>';}).join(' + ');
-      var ls=left>0?'<span style="background:'+(left>=offcutMinH?'#d1fae5;color:#065f46':'#fee2e2;color:#991b1b')+';padding:2px 5px;border-radius:3px;font-size:11px;margin-left:4px;">余 '+left+'</span>':'';
+      var ls=left>0?'<span style="background:'+(left>=offcutMinH?'#d1fae5;color:#065f46':'#fee2e2;color:#991b1b')+';padding:2px 5px;border-radius:3px;font-size:11px;margin-left:4px;">+'+left+'mm</span>':'';
       tab2+='<div style="padding:8px 10px;border:1px solid #e5e5e5;border-radius:6px;margin-bottom:6px;font-size:12px;">'
-        +'<b>原料 #'+(bi+1)+'</b> ('+x+'mm)：'+pcs+' = '+used+'mm '+ls+'</div>';
+        +'<b>#'+(bi+1)+'</b> ('+x+'mm)：'+pcs+' = '+used+'mm'+ls+'</div>';
     });
   }
-  if(hr.timedOut)tab2+='<p style="font-size:11px;color:#D97706;margin-top:6px;">⚠ DFS超时，已采用贪心近似结果</p>';
+  if(hr.timedOut)tab2+='<p style="font-size:11px;color:#D97706;margin-top:6px;">'+(tl.hd_timeout||'⚠ DFS超时，已采用贪心近似结果')+'</p>';
   // Tab3 尾段分配
   var tab3=hr.tails.length?hr.bins.map(function(b,bi){
     return '<div style="padding:8px 10px;border:1px solid #e5e5e5;border-radius:6px;margin-bottom:6px;font-size:12px;">'
-      +'<b>原料 #'+(bi+1)+'</b>：'
+      +'<b>#'+(bi+1)+'</b>：'
       +b.map(function(p,pi){return '<span style="background:#fef3c7;color:#92400e;padding:2px 5px;border-radius:3px;font-size:11px;margin-right:4px;">#'+(pi+1)+' '+p+'mm</span>';}).join('')+'</div>';
-  }).join(''):'<p style="color:#888;font-size:13px;">无尾段（成品长度均为原料整数倍）</p>';
+  }).join(''):'<p style="color:#888;font-size:13px;">'+(tl.hd_tab3_empty||'无尾段')+'</p>';
 
   var html=
     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;">'
-    +sc('成品导轨条数','安装时实际使用的导轨总条数（含拼接）',hr.totalFinished)
-    +sc('导轨总根数','',hr.totalRaw)
-    +sc('其中整根直供','',hr.fullRails)
-    +sc('为尾段新开','',hr.newForTails)
+    +sc('hd_finished',hr.totalFinished)+sc('hd_total',hr.totalRaw)
+    +sc('hd_full',hr.fullRails)+sc('hd_new',hr.newForTails)
     +'</div>'
     +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">'
-    +sc('连接件总数','',hr.totalConn)
-    +sc('废料总长度','',hr.totalWaste+' mm')
-    +sc('最终可复用余料数','',hr.reusable.length)
-    +sc('贪心上界（参考）','不考虑余料复用时所需导轨总数',hr.greedyBound)
+    +sc('hd_conn',hr.totalConn)+sc('hd_waste',hr.totalWaste+' mm')
+    +sc('hd_reusable',hr.reusable.length)+sc('hd_greedy',hr.greedyBound)
     +'</div>'
     +'<div style="display:flex;border-bottom:1px solid #E8E4DF;margin-bottom:14px;">'
-    +'<button id="hdt0" onclick="switchHDTab(0)"></button>'
-    +'<button id="hdt1" onclick="switchHDTab(1)"></button>'
-    +'<button id="hdt2" onclick="switchHDTab(2)"></button>'
-    +'<button id="hdt3" onclick="switchHDTab(3)"></button>'
+    +'<button id="hdt0" onclick="switchHDTab(0)"></button><button id="hdt1" onclick="switchHDTab(1)"></button>'
+    +'<button id="hdt2" onclick="switchHDTab(2)"></button><button id="hdt3" onclick="switchHDTab(3)"></button>'
     +'</div>'
-    +'<div id="hdpage0">'+tab0+'</div>'
-    +'<div id="hdpage1" style="display:none">'+tab1+'</div>'
-    +'<div id="hdpage2" style="display:none">'+tab2+'</div>'
-    +'<div id="hdpage3" style="display:none">'+tab3+'</div>';
+    +'<div id="hdpage0">'+tab0+'</div><div id="hdpage1" style="display:none">'+tab1+'</div>'
+    +'<div id="hdpage2" style="display:none">'+tab2+'</div><div id="hdpage3" style="display:none">'+tab3+'</div>';
 
-  document.getElementById('horizDetailContent').innerHTML = html;
-  var labels=['汇总','成品导轨','原料切割','尾段分配'];
-  labels.forEach(function(lbl,i){var b=document.getElementById('hdt'+i);if(b)b.textContent=lbl;});
+  document.getElementById('horizDetailContent').innerHTML=html;
+  [tl.hd_t0,tl.hd_t1,tl.hd_t2,tl.hd_t3].forEach(function(lbl,i){var b=document.getElementById('hdt'+i);if(b)b.textContent=lbl||['汇总','成品导轨','原料切割','尾段分配'][i];});
   switchHDTab(0);
   document.getElementById('horizDetailModal').style.display='block';
   document.body.style.overflow='hidden';
