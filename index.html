@@ -789,6 +789,7 @@ function updateTabLockState() {
 // ════════════════════════════════════════════
 function updateFormulaDisplay(brand) {
   const fd = document.getElementById('formulaDisplay');
+  if (!fd) return;
   const t = T[lang];
   const title = brand === 'clenergy' ? t.formula_c_title : brand === 'kseng' ? t.formula_k_title : t.formula_p_title;
   const items = brand === 'clenergy' ? t.formula_c : brand === 'kseng' ? t.formula_k : t.formula_p;
