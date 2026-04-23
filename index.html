@@ -1426,8 +1426,9 @@ function _loadIDB() {
       var req = idb.transaction(_IDB_STORE,'readonly').objectStore(_IDB_STORE).get(_IDB_KEY);
       req.onsuccess = function(e) {
         var d = e.target.result;
-        if (d && d.packages && d.packages.length > 0) {
-          if (!Array.isArray(d.panels)) d.panels = [];
+        if (d && Array.isArray(d.accessories) && d.accessories.length > 0) {
+          if (!Array.isArray(d.packages)) d.packages = [];
+          if (!Array.isArray(d.panels))   d.panels   = [];
           resolve(d);
         } else {
           resolve(JSON.parse(JSON.stringify(DEFAULT_PVSTAR_DB)));
