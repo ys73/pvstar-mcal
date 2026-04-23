@@ -90,7 +90,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 <div id="js-err"></div>
 
 <div class="topbar">
-  <span class="topbar-title">&#9881; PVSTAR 后台数据管理</span>
+  <span id="adminTopTitle" class="topbar-title">&#9881; PVSTAR 后台数据管理</span>
   <div class="topbar-actions">
     <button class="btn btn-sm" id="adminBtnZh" style="border-color:#555;color:#fff;background:#555;margin-right:4px;" onclick="setAdminLang('zh')">中</button><button class="btn btn-sm" id="adminBtnEn" style="border-color:#555;color:#ccc;background:transparent;margin-right:8px;" onclick="setAdminLang('en')">EN</button><button class="btn btn-sm" id="topExportBtn" style="border-color:#555;color:#ccc;background:transparent;" onclick="exportDB()">&#8595; 导出 JSON</button>
     <label class="btn btn-sm" style="border-color:#555;color:#ccc;background:transparent;cursor:pointer;">
@@ -345,10 +345,15 @@ const ADMIN_T = {
   zh: {
     pageTitle:'PVSTAR 后台数据管理',topTitle:'⚙ PVSTAR 后台数据管理',
     exportJson:'↓ 导出 JSON',importJson:'↑ 导入 JSON',backCalc:'← 返回计算器',
-    tabAcc:'🔍 单个配件',tabPkg:'📦 配件包',tabIo:'⇅ 导入/导出',tabSettings:'⚙ 安装参数',
+    tabAcc:'🔍 单个配件',tabPkg:'📦 配件包',tabPanel:'☀ 光伏板',tabIo:'⇅ 导入/导出',tabSettings:'⚙ 安装参数',
+    chgPwBtn:'🔒 修改密码',
+    panelTitle:'光伏板',panelSub:'可选光伏板型号、尺寸、功率等参数',addPanel:'+ 新增光伏板',
     settingsTitle:'安装参数',settingsSub:'横装导轨长度计算参数',
     settingsSaved:'安装参数已保存',
     saveSettingsBtn:'保存安装参数',
+    settingGapLabel:'光伏板间距 (mm)',settingGapDesc:'相邻光伏板之间的间隔距离',
+    settingOverhangLabel:'导轨两端突出量 (mm)',settingOverhangDesc:'导轨在光伏板阵列两端各突出的长度（单侧）',
+    settingFormula:'导轨成品长度 = n × 板长 + (n-1) × 间距 + 2 × 突出量',
     accTitle:'单个配件',accSub:'料号、图片、重量、价格、附件等',addAcc:'+ 新增配件',
     pkgTitle:'配件包',pkgSub:'包含包内配件构成、规格和价格',addPkg:'+ 新增配件包',
     ioTitle:'数据导入 / 导出',
@@ -384,10 +389,15 @@ const ADMIN_T = {
   en: {
     pageTitle:'PVSTAR Backend Management',topTitle:'⚙ PVSTAR Backend Management',
     exportJson:'↓ Export JSON',importJson:'↑ Import JSON',backCalc:'← Back to Calculator',
-    tabAcc:'🔍 Accessories',tabPkg:'📦 Packages',tabIo:'⇅ Import/Export',tabSettings:'⚙ Install Params',
+    tabAcc:'🔍 Accessories',tabPkg:'📦 Packages',tabPanel:'☀ Panels',tabIo:'⇅ Import/Export',tabSettings:'⚙ Install Params',
+    chgPwBtn:'🔒 Change Password',
+    panelTitle:'Panels',panelSub:'Available panel models, dimensions, and power ratings',addPanel:'+ Add Panel',
     settingsTitle:'Install Parameters',settingsSub:'Parameters for horizontal rail length calculation',
     settingsSaved:'Settings saved',
     saveSettingsBtn:'Save Settings',
+    settingGapLabel:'Panel Gap (mm)',settingGapDesc:'Gap between adjacent panels',
+    settingOverhangLabel:'Rail Overhang (mm)',settingOverhangDesc:'Extra rail extending beyond each end of the row (per side)',
+    settingFormula:'Finished rail length = n × panel_length + (n-1) × gap + 2 × overhang',
     accTitle:'Accessories',accSub:'Part No., images, weight, price, attachments',addAcc:'+ New Accessory',
     pkgTitle:'Packages',pkgSub:'Pack contents, specs and pricing',addPkg:'+ New Package',
     ioTitle:'Data Import / Export',
@@ -429,13 +439,17 @@ function setAdminLang(l) {
   document.title = T.pageTitle;
   var m = {
     adminTopTitle:T.topTitle, adminBtnZh:null, adminBtnEn:null,
-    topExportBtn:T.exportJson, topBackBtn:T.backCalc,
-    sideAcc:T.tabAcc, sidePkg:T.tabPkg, sideIo:T.tabIo,
+    topExportBtn:T.exportJson, topBackBtn:T.backCalc, topChgPwBtn:T.chgPwBtn,
+    sideAcc:T.tabAcc, sidePkg:T.tabPkg, sidePanel:T.tabPanel, sideIo:T.tabIo,
     sideSettings:T.tabSettings,
     secSettingsTitle:T.settingsTitle, secSettingsSub:T.settingsSub,
     saveSettingsBtn:T.saveSettingsBtn,
+    settingGapLabel:T.settingGapLabel, settingGapDesc:T.settingGapDesc,
+    settingOverhangLabel:T.settingOverhangLabel, settingOverhangDesc:T.settingOverhangDesc,
+    settingFormulaPreview:T.settingFormula,
     secAccTitle:T.accTitle, secAccSub:T.accSub, addAccBtn:T.addAcc,
     secPkgTitle:T.pkgTitle, secPkgSub:T.pkgSub, addPkgBtn:T.addPkg,
+    secPanelTitle:T.panelTitle, secPanelSub:T.panelSub, addPanelBtn:T.addPanel,
     ioTitle:T.ioTitle,
     exportDbTitle:T.exportDbTitle, exportDbDesc:T.exportDbDesc, exportDbBtn:T.exportDbBtn,
     importDbTitle:T.importDbTitle, importDbDesc:T.importDbDesc,
