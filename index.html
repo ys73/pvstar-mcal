@@ -978,38 +978,105 @@ function closeHorizHelp() {
   document.getElementById('horizHelpModal').style.display = 'none';
   document.body.style.overflow = '';
 }
-function openHorizDetail(scenarioId) {
-  var s = scenarios.find(function(sc) { return sc.id === scenarioId; });
-  if (!s || s.mode !== 'horizontal' || !s._horizResult) return;
-  var h = s._horizResult;
-  var x = h._x, y = h._y, L = h._L, n = h._n, rc = s.rowCount;
-  var useOff = s._useOffcuts;
-  var strands = 2 * rc;
-  var piecesPerStrand = Math.ceil(L / x);
-  var joins = piecesPerStrand - 1;
-  var el = document.getElementById('horizDetailContent');
-  el.innerHTML =
-    '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
-    '<tr style="background:#f8f8f8;"><th style="text-align:left;padding:7px 10px;border:1px solid #e5e5e5;">参数</th><th style="text-align:right;padding:7px 10px;border:1px solid #e5e5e5;">数值</th></tr>' +
-    row('光伏板长边 (y)', y + ' mm') +
-    row('导轨长度 (x)', x + ' mm') +
-    row('每排块数 (n)', n) +
-    row('排数', rc) +
-    row('成品导轨长度 L = n×y+100', L + ' mm') +
-    row('每条成品导轨所需原料段数 = ceil(L/x)', piecesPerStrand) +
-    row('每条成品导轨连接件 = ceil-1', joins) +
-    '<tr style="background:#f8f8f8;"><td colspan="2" style="padding:7px 10px;border:1px solid #e5e5e5;font-weight:600;">汇总</td></tr>' +
-    row('成品导轨总条数 = 2×排数', strands) +
-    row('导轨（新开原料根数）', h.rails) +
-    row('导轨连接件 = (ceil-1)×2×排数', h.railConnectors) +
-    row('挂钩 = ' + (n<3?'n×4':'(n-2)×3+8'), h.hooks/rc + '/排 → 合计 ' + h.hooks) +
-    row('侧压块 = 4×排数', h.endClamps) +
-    row('中压块 = 2×(n-1)×排数', h.midClamps) +
-    row('导轨端盖 = 2对×排数', h.leftEndCaps + ' 对') +
-    '</table>' +
-    (useOff ? '<p style="font-size:12px;color:#16a34a;margin-top:10px;">✓ 已启用余料优化（贪心算法）</p>' : '');
-  document.getElementById('horizDetailModal').style.display = 'block';
-  document.body.style.overflow = 'hidden';
+function switchHDTab(i) {
+  [0,1,2,3].forEach(function(j){
+    var b=document.getElementById('hdt'+j), p=document.getElementById('hdpage'+j);
+    if(b)b.style.cssText='flex:1;padding:10px 6px;font-size:12px;border:none;cursor:pointer;'+(j===i?'background:#1A1A1A;color:#fff;font-weight:500;':'background:#f5f5f5;color:#666;');
+    if(p)p.style.display=j===i?'block':'none';
+  });
+}
+function openHorizDetail(sid) {
+  var hr=_lastHorizResult||calcAllHorizResult();
+  if(!hr){showToast('请先点击"计算总量"');return;}
+  var x=hr.x;
+  function sc(lbl,tip,val){
+    return '<div style="background:#f8f8f8;border-radius:8px;padding:11px 8px;text-align:center;">'
+      +'<div style="font-size:11px;color:#888;margin-bottom:4px;">'+lbl+(tip?'<span title="'+tip+'" style="cursor:help;margin-left:3px;font-size:9px;border:1px solid #bbb;border-radius:50%;padding:0 3px;color:#aaa;">?</span>':'')+'</div>'
+      +'<div style="font-size:1.3rem;font-weight:700;color:#1A1A1A;">'+val+'</div></div>';
+  }
+  function TH(t){return '<th style="text-align:left;padding:6px 8px;border:1px solid #e5e5e5;background:#f8f8f8;font-size:12px;">'+t+'</th>';}
+  function TD(t,o){return '<td style="padding:6px 8px;border:1px solid #e5e5e5;font-size:12px;'+(o?'color:#D97706;font-weight:600;':'')+'">'+t+'</td>';}
+  // Tab0 汇总
+  var rows0=hr.types.map(function(tp,i){
+    return '<tr>'+TD('类型'+(i+1))+TD(tp.n)+TD(tp.rc)+TD(tp.nr)
+      +TD(tp.L.toLocaleString()+' mm')+TD(tp.k,tp.t===0)+TD(tp.t>0?tp.t.toLocaleString()+' mm':'—',tp.t>0)+TD(tp.conn)+'</tr>';
+  }).join('');
+  var tab0='<div style="font-weight:600;font-size:14px;margin-bottom:10px;">计算汇总</div>'
+    +'<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;margin-bottom:14px;">'
+    +'<tr>'+TH('类别')+TH('每排块数')+TH('排数')+TH('导轨条数(2×排数)')+TH('单条成品长度')+TH('整根段数')+TH('尾段需求')+TH('单条连接件')+'</tr>'
+    +rows0+'</table></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'
+    +(hr.reusable.length?'<div style="border:1px solid #e5e5e5;border-radius:8px;padding:12px;">'
+      +'<div style="font-weight:600;font-size:13px;margin-bottom:8px;">最终可复用余料</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'+hr.reusable.map(function(r){return '<span style="background:#d1fae5;color:#065f46;padding:3px 8px;border-radius:12px;font-size:12px;">'+r+'</span>';}).join('')+'</div></div>':'<div></div>')
+    +(hr.wastes.length?'<div style="border:1px solid #e5e5e5;border-radius:8px;padding:12px;">'
+      +'<div style="font-weight:600;font-size:13px;margin-bottom:8px;">报废边角料</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'+hr.wastes.map(function(w){return '<span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:12px;font-size:12px;">'+w+'</span>';}).join('')+'</div></div>':'<div></div>')
+    +'</div>';
+  // Tab1 成品导轨
+  var rows1='';
+  hr.types.forEach(function(tp,ti){
+    for(var i=0;i<tp.nr;i++){
+      var segs=[];
+      for(var j=0;j<tp.k;j++)segs.push('<span style="background:#dbeafe;color:#1e40af;padding:2px 5px;border-radius:3px;font-size:11px;">整段 '+x+'</span>');
+      if(tp.t>0)segs.push('<span style="background:#fef3c7;color:#92400e;padding:2px 5px;border-radius:3px;font-size:11px;">尾段 '+tp.t+'</span>');
+      rows1+='<tr>'+TD('类型'+(ti+1)+'·#'+(i+1))+TD(tp.L.toLocaleString()+' mm')+TD('<div style="display:flex;flex-wrap:wrap;gap:3px;">'+segs.join('')+'</div>')+TD(tp.conn)+'</tr>';
+    }
+  });
+  var tab1='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">'
+    +'<tr>'+TH('成品导轨')+TH('长度')+TH('构成（mm）')+TH('连接件')+'</tr>'+rows1+'</table></div>';
+  // Tab2 原料切割
+  var tab2='';
+  if(hr.fullRails>0)tab2+='<div style="margin-bottom:10px;padding:10px;background:#f0fdf4;border-radius:6px;border-left:3px solid #16a34a;font-size:12px;">'
+    +'<b>整根直供：'+hr.fullRails+' 根（'+x+'mm）</b><br>各成品导轨中整根段直接用原料，无切割无废料。</div>';
+  if(hr.bins.length){
+    tab2+='<div style="font-weight:600;font-size:13px;margin-bottom:8px;">新开原料（为尾段）：'+hr.bins.length+' 根</div>';
+    hr.bins.forEach(function(b,bi){
+      var used=b.reduce(function(s,p){return s+p;},0),left=x-used;
+      var pcs=b.map(function(p){return '<span style="background:#fef3c7;color:#92400e;padding:2px 5px;border-radius:3px;font-size:11px;">'+p+'</span>';}).join(' + ');
+      var ls=left>0?'<span style="background:'+(left>=offcutMinH?'#d1fae5;color:#065f46':'#fee2e2;color:#991b1b')+';padding:2px 5px;border-radius:3px;font-size:11px;margin-left:4px;">余 '+left+'</span>':'';
+      tab2+='<div style="padding:8px 10px;border:1px solid #e5e5e5;border-radius:6px;margin-bottom:6px;font-size:12px;">'
+        +'<b>原料 #'+(bi+1)+'</b> ('+x+'mm)：'+pcs+' = '+used+'mm '+ls+'</div>';
+    });
+  }
+  if(hr.timedOut)tab2+='<p style="font-size:11px;color:#D97706;margin-top:6px;">⚠ DFS超时，已采用贪心近似结果</p>';
+  // Tab3 尾段分配
+  var tab3=hr.tails.length?hr.bins.map(function(b,bi){
+    return '<div style="padding:8px 10px;border:1px solid #e5e5e5;border-radius:6px;margin-bottom:6px;font-size:12px;">'
+      +'<b>原料 #'+(bi+1)+'</b>：'
+      +b.map(function(p,pi){return '<span style="background:#fef3c7;color:#92400e;padding:2px 5px;border-radius:3px;font-size:11px;margin-right:4px;">#'+(pi+1)+' '+p+'mm</span>';}).join('')+'</div>';
+  }).join(''):'<p style="color:#888;font-size:13px;">无尾段（成品长度均为原料整数倍）</p>';
+
+  var html=
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;">'
+    +sc('成品导轨条数','安装时实际使用的导轨总条数（含拼接）',hr.totalFinished)
+    +sc('导轨总根数','',hr.totalRaw)
+    +sc('其中整根直供','',hr.fullRails)
+    +sc('为尾段新开','',hr.newForTails)
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">'
+    +sc('连接件总数','',hr.totalConn)
+    +sc('废料总长度','',hr.totalWaste+' mm')
+    +sc('最终可复用余料数','',hr.reusable.length)
+    +sc('贪心上界（参考）','不考虑余料复用时所需导轨总数',hr.greedyBound)
+    +'</div>'
+    +'<div style="display:flex;border-bottom:1px solid #E8E4DF;margin-bottom:14px;">'
+    +'<button id="hdt0" onclick="switchHDTab(0)"></button>'
+    +'<button id="hdt1" onclick="switchHDTab(1)"></button>'
+    +'<button id="hdt2" onclick="switchHDTab(2)"></button>'
+    +'<button id="hdt3" onclick="switchHDTab(3)"></button>'
+    +'</div>'
+    +'<div id="hdpage0">'+tab0+'</div>'
+    +'<div id="hdpage1" style="display:none">'+tab1+'</div>'
+    +'<div id="hdpage2" style="display:none">'+tab2+'</div>'
+    +'<div id="hdpage3" style="display:none">'+tab3+'</div>';
+
+  document.getElementById('horizDetailContent').innerHTML = html;
+  var labels=['汇总','成品导轨','原料切割','尾段分配'];
+  labels.forEach(function(lbl,i){var b=document.getElementById('hdt'+i);if(b)b.textContent=lbl;});
+  switchHDTab(0);
+  document.getElementById('horizDetailModal').style.display='block';
+  document.body.style.overflow='hidden';
 }
 function closeHorizDetail() {
   document.getElementById('horizDetailModal').style.display = 'none';
@@ -1038,6 +1105,80 @@ function bestFitGreedy(pieces, rawLen, minOff) {
     }
   }
   return rawCount;
+}
+
+// Greedy first-fit-decreasing bin packing for tail pieces
+function horizGreedyPack(tails, x) {
+  var bins=[], rems=[];
+  tails.slice().sort(function(a,b){return b-a;}).forEach(function(t){
+    for(var i=0;i<bins.length;i++){if(rems[i]>=t){bins[i].push(t);rems[i]-=t;return;}}
+    bins.push([t]);rems.push(x-t);
+  });
+  return bins;
+}
+
+// DFS exact bin packing (1.5s timeout, falls back to greedy result)
+function horizDfsPack(tails, x, greedyBins) {
+  var n=tails.length;
+  if(!n)return{bins:[],timedOut:false};
+  var sorted=tails.slice().sort(function(a,b){return b-a;});
+  var best={count:greedyBins.length,bins:greedyBins.map(function(b){return b.slice();})};
+  var t0=Date.now(),to=false;
+  function dfs(i,bins,rems){
+    if(to)return;
+    if(Date.now()-t0>1500){to=true;return;}
+    if(i===n){if(bins.length<best.count){best.count=bins.length;best.bins=bins.map(function(b){return b.slice();});}return;}
+    var p=sorted[i],rs=0;for(var j=i;j<n;j++)rs+=sorted[j];
+    if(bins.length+Math.ceil(rs/x)>=best.count)return;
+    var seen={};
+    for(var k=0;k<bins.length;k++){var r=rems[k];if(r>=p&&!seen[r]){seen[r]=1;bins[k].push(p);rems[k]-=p;dfs(i+1,bins,rems);bins[k].pop();rems[k]+=p;}}
+    if(bins.length+1<best.count){bins.push([p]);rems.push(x-p);dfs(i+1,bins,rems);bins.pop();rems.pop();}
+  }
+  dfs(0,[],[]);
+  return{bins:best.bins,timedOut:to};
+}
+
+// Combined horizontal result across ALL horizontal scenarios
+function calcAllHorizResult() {
+  var x=getRailLength();
+  if(!x)return null;
+  var allSizes=getAllPanelSizes();
+  var panel=allSizes.find(function(p){return p.id===currentPanelSize;});
+  var y=panel?Math.max(panel.w||0,panel.h||0):0;
+  if(!y)return null;
+  var hScens=scenarios.filter(function(s){return s.mode==='horizontal';});
+  if(!hScens.length)return null;
+  var types=hScens.map(function(s){
+    var n=s.arrangement,rc=s.rowCount,L=n*y+100;
+    var k=Math.floor(L/x),t=L-k*x,nr=2*rc;
+    var segs=k+(t>0?1:0),conn=Math.max(0,segs-1);
+    return{n:n,rc:rc,L:L,k:k,t:t,nr:nr,conn:conn};
+  });
+  var totalFull=types.reduce(function(s,tp){return s+tp.k*tp.nr;},0);
+  var tails=[];
+  types.forEach(function(tp){if(tp.t>0)for(var i=0;i<tp.nr;i++)tails.push(tp.t);});
+  var gBins=horizGreedyPack(tails,x);
+  var packBins,timedOut=false;
+  if(useOffcutsH&&tails.length>0){var dr=horizDfsPack(tails,x,gBins);packBins=dr.bins;timedOut=dr.timedOut;}
+  else if(!useOffcutsH&&tails.length>0){packBins=tails.map(function(t){return[t];});}
+  else{packBins=[];}
+  var newRails=packBins.length;
+  var totalConn=types.reduce(function(s,tp){return s+tp.conn*tp.nr;},0);
+  var wastes=[],reusable=[];
+  packBins.forEach(function(b){
+    var left=x-b.reduce(function(s,p){return s+p;},0);
+    if(left>0){if(left>=offcutMinH)reusable.push(left);else wastes.push(left);}
+  });
+  return{
+    x:x,y:y,types:types,
+    totalFinished:types.reduce(function(s,tp){return s+tp.nr;},0),
+    totalRaw:totalFull+newRails,fullRails:totalFull,newForTails:newRails,
+    totalConn:totalConn,
+    wastes:wastes,reusable:reusable,
+    totalWaste:wastes.reduce(function(s,w){return s+w;},0),
+    greedyBound:totalFull+gBins.length,
+    bins:packBins,tails:tails,timedOut:timedOut
+  };
 }
 
 function calcHorizComponents(n, rowCount) {
@@ -1092,10 +1233,17 @@ function calculateSingleScenario(scenario) {
   if (scenario.mode === 'horizontal') {
     var h = scenario._horizResult;
     return {
-      rails: h.rails, hooks: h.hooks||0, endClamps: h.endClamps, midClamps: h.midClamps,
-      railConnectors: h.railConnectors, railEndCaps: h.railEndCaps||0,
-      washers: h.washers, cableClips: h.cableClips, lightningClips: h.lightningClips,
-      leftEndCaps: h.leftEndCaps, rightEndCaps: h.rightEndCaps||0
+      rails: 0,           // calculated globally via calcAllHorizResult
+      hooks: h.hooks || 0,
+      endClamps: h.endClamps || 0,
+      midClamps: h.midClamps || 0,
+      railConnectors: 0,  // calculated globally
+      railEndCaps: 0,
+      washers: h.washers || 0,
+      cableClips: h.cableClips || 0,
+      lightningClips: h.lightningClips || 0,
+      leftEndCaps: h.leftEndCaps || 0,
+      rightEndCaps: 0
     };
   }
   const { arrangement: n, quantity: rowCount, panelCount } = scenario;
@@ -1138,6 +1286,7 @@ function calculateSingleScenario(scenario) {
 
 function calculateTotal() {
   if (!scenarios.length) return;
+  _lastHorizResult = null;
   let tot = { rails:0,hooks:0,endClamps:0,midClamps:0,railConnectors:0,
                railEndCaps:0,washers:0,cableClips:0,lightningClips:0,
                leftEndCaps:0,rightEndCaps:0 };
@@ -1145,6 +1294,11 @@ function calculateTotal() {
     const r = calculateSingleScenario(s);
     Object.keys(r).forEach(k => { tot[k] += r[k]; });
   });
+  _lastHorizResult = calcAllHorizResult();
+  if (_lastHorizResult) {
+    tot.rails += _lastHorizResult.totalRaw;
+    tot.railConnectors += _lastHorizResult.totalConn;
+  }
   if (marginPercentage > 0) {
     const m = 1 + marginPercentage/100;
     Object.keys(tot).forEach(k => { tot[k] = Math.round(tot[k]*m); });
@@ -1518,6 +1672,7 @@ const ROUNDUP_QTY_ITEMS = [
 ];
 
 let _lastTotForRoundup = null;
+let _lastHorizResult = null;
 
 // ── Horizontal mode state ──
 let installMode  = 'vertical'; // 'vertical' | 'horizontal'
@@ -2100,7 +2255,7 @@ document.addEventListener('keydown', function(e) {
 
 <!-- Horizontal Detail Modal -->
 <div id="horizDetailModal" style="display:none;position:fixed;inset:0;z-index:9991;background:rgba(0,0,0,.5);overflow-y:auto;backdrop-filter:blur(2px);" onclick="if(event.target===this)closeHorizDetail()">
-  <div style="background:#fff;max-width:600px;margin:40px auto;border-radius:12px;padding:28px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+  <div style="background:#fff;max-width:880px;margin:40px auto;border-radius:12px;padding:28px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2);">
     <button onclick="closeHorizDetail()" style="position:absolute;top:12px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:#aaa;">&times;</button>
     <div style="font-size:1.05rem;font-weight:500;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #E8E4DF;">横装计算详情</div>
     <div id="horizDetailContent"></div>
