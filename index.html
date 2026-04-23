@@ -633,7 +633,8 @@ const T = {
     hd_timeout:'⚠ DFS超时，已采用贪心近似结果',
     hd_tab1_th:['成品导轨','长度','构成（mm）','单条连接件'],
     hd_full_seg:'整段', hd_tail_seg:'尾段', hd_type:'类型',
-    hd_tab3_empty:'无尾段（成品长度均为原料整数倍）'
+    hd_tab3_empty:'无尾段（成品长度均为原料整数倍）',
+    hd_rail:'导轨', hd_raw_rail:'原料'
   },
   en: {
     pageTitle:        'Pitched Roof PV Mounting System Calculator',
@@ -733,7 +734,8 @@ const T = {
     hd_timeout:'⚠ DFS timed out — using greedy approximation',
     hd_tab1_th:['Finished Rail','Length','Composition (mm)','Connectors'],
     hd_full_seg:'full', hd_tail_seg:'tail', hd_type:'Type',
-    hd_tab3_empty:'No tail pieces (all finished lengths are multiples of raw rail length)'
+    hd_tab3_empty:'No tail pieces (all finished lengths are multiples of raw rail length)',
+    hd_rail:'Rail', hd_raw_rail:'Raw'
   }
 };
 
@@ -1063,15 +1065,18 @@ function openHorizDetail(sid) {
       +'<div style="font-weight:600;font-size:13px;margin-bottom:8px;">'+(tl.hd_waste_lbl||'报废边角料')+'</div>'
       +'<div style="display:flex;flex-wrap:wrap;gap:6px;">'+hr.wastes.map(function(w){return '<span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:12px;font-size:12px;">'+w+'mm</span>';}).join('')+'</div></div>':'<div></div>')
     +'</div>';
-  // Tab1 成品导轨
-  var rows1='';
+  // Tab1 成品导轨 — global sequential rail numbering
+  var rows1='', globalRailOffset=0;
   hr.types.forEach(function(tp,ti){
     for(var i=0;i<tp.nr;i++){
+      var gNo=globalRailOffset+i+1;
       var segs=[];
-      for(var j=0;j<tp.k;j++)segs.push('<span style="background:#dbeafe;color:#1e40af;padding:2px 5px;border-radius:3px;font-size:11px;">'+fullSeg+' '+x+'</span>');
-      if(tp.t>0)segs.push('<span style="background:#fef3c7;color:#92400e;padding:2px 5px;border-radius:3px;font-size:11px;">'+tailSeg+' '+tp.t+'</span>');
-      rows1+='<tr>'+TD(typeWord+(ti+1)+'·#'+(i+1))+TD(tp.L.toLocaleString()+' mm')+TD('<div style="display:flex;flex-wrap:wrap;gap:3px;">'+segs.join('')+'</div>')+TD(tp.conn)+'</tr>';
+      for(var j=0;j<tp.k;j++)segs.push('<span style="background:#dbeafe;color:#1e40af;padding:2px 5px;border-radius:3px;font-size:11px;">'+fullSeg+' '+x+'mm</span>');
+      if(tp.t>0)segs.push('<span style="background:#fef3c7;color:#92400e;padding:2px 5px;border-radius:3px;font-size:11px;">'+tailSeg+' '+tp.t+'mm</span>');
+      rows1+='<tr>'+TD('<b>#'+gNo+'</b> <span style="color:#888;font-size:11px;">('+typeWord+(ti+1)+')</span>')
+        +TD(tp.L.toLocaleString()+' mm')+TD('<div style="display:flex;flex-wrap:wrap;gap:3px;">'+segs.join('')+'</div>')+TD(tp.conn)+'</tr>';
     }
+    globalRailOffset+=tp.nr;
   });
   var tab1='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">'
     +'<tr>'+t1h.map(TH).join('')+'</tr>'+rows1+'</table></div>';
@@ -1085,19 +1090,25 @@ function openHorizDetail(sid) {
     var tn=(tl.hd_tail_new||'新开原料（为尾段）：{n} 根').replace('{n}',hr.bins.length);
     tab2+='<div style="font-weight:600;font-size:13px;margin-bottom:8px;">'+tn+'</div>';
     hr.bins.forEach(function(b,bi){
-      var used=b.reduce(function(s,p){return s+p;},0),left=x-used;
-      var pcs=b.map(function(p){return '<span style="background:#fef3c7;color:#92400e;padding:2px 5px;border-radius:3px;font-size:11px;">'+p+'</span>';}).join(' + ');
+      var used=b.reduce(function(s,p){return s+p.len;},0),left=x-used;
+      var pcs=b.map(function(p){return '<span style="background:#fef3c7;color:#92400e;padding:2px 5px;border-radius:3px;font-size:11px;">'+p.len+'mm</span>';}).join(' + ');
       var ls=left>0?'<span style="background:'+(left>=offcutMinH?'#d1fae5;color:#065f46':'#fee2e2;color:#991b1b')+';padding:2px 5px;border-radius:3px;font-size:11px;margin-left:4px;">+'+left+'mm</span>':'';
       tab2+='<div style="padding:8px 10px;border:1px solid #e5e5e5;border-radius:6px;margin-bottom:6px;font-size:12px;">'
         +'<b>#'+(bi+1)+'</b> ('+x+'mm)：'+pcs+' = '+used+'mm'+ls+'</div>';
     });
   }
   if(hr.timedOut)tab2+='<p style="font-size:11px;color:#D97706;margin-top:6px;">'+(tl.hd_timeout||'⚠ DFS超时，已采用贪心近似结果')+'</p>';
-  // Tab3 尾段分配
+  // Tab3 尾段分配 — show which rail number each tail belongs to
+  var railLbl=tl.hd_rail||'导轨';
   var tab3=hr.tails.length?hr.bins.map(function(b,bi){
+    var used=b.reduce(function(s,p){return s+p.len;},0),left=x-used;
+    var pcs=b.map(function(p){
+      return '<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:4px;font-size:11px;margin-right:4px;">'
+        +'<b>'+railLbl+'#'+p.railNo+'</b> '+p.len+'mm</span>';
+    }).join('');
+    var ls=left>0?'<span style="background:'+(left>=offcutMinH?'#d1fae5;color:#065f46':'#fee2e2;color:#991b1b')+';padding:3px 8px;border-radius:4px;font-size:11px;margin-left:2px;">余'+left+'mm</span>':'';
     return '<div style="padding:8px 10px;border:1px solid #e5e5e5;border-radius:6px;margin-bottom:6px;font-size:12px;">'
-      +'<b>#'+(bi+1)+'</b>：'
-      +b.map(function(p,pi){return '<span style="background:#fef3c7;color:#92400e;padding:2px 5px;border-radius:3px;font-size:11px;margin-right:4px;">#'+(pi+1)+' '+p+'mm</span>';}).join('')+'</div>';
+      +'<span style="font-weight:600;margin-right:8px;">'+(tl.hd_raw_rail||'原料')+'#'+(bi+1)+'</span>'+pcs+ls+'</div>';
   }).join(''):'<p style="color:#888;font-size:13px;">'+(tl.hd_tab3_empty||'无尾段')+'</p>';
 
   var html=
@@ -1152,31 +1163,33 @@ function bestFitGreedy(pieces, rawLen, minOff) {
 }
 
 // Greedy first-fit-decreasing bin packing for tail pieces
+// tails: array of {len, railNo} objects
 function horizGreedyPack(tails, x) {
   var bins=[], rems=[];
-  tails.slice().sort(function(a,b){return b-a;}).forEach(function(t){
-    for(var i=0;i<bins.length;i++){if(rems[i]>=t){bins[i].push(t);rems[i]-=t;return;}}
-    bins.push([t]);rems.push(x-t);
+  tails.slice().sort(function(a,b){return b.len-a.len;}).forEach(function(t){
+    for(var i=0;i<bins.length;i++){if(rems[i]>=t.len){bins[i].push(t);rems[i]-=t.len;return;}}
+    bins.push([t]);rems.push(x-t.len);
   });
   return bins;
 }
 
 // DFS exact bin packing (1.5s timeout, falls back to greedy result)
+// tails: array of {len, railNo} objects
 function horizDfsPack(tails, x, greedyBins) {
   var n=tails.length;
   if(!n)return{bins:[],timedOut:false};
-  var sorted=tails.slice().sort(function(a,b){return b-a;});
+  var sorted=tails.slice().sort(function(a,b){return b.len-a.len;});
   var best={count:greedyBins.length,bins:greedyBins.map(function(b){return b.slice();})};
   var t0=Date.now(),to=false;
   function dfs(i,bins,rems){
     if(to)return;
     if(Date.now()-t0>1500){to=true;return;}
     if(i===n){if(bins.length<best.count){best.count=bins.length;best.bins=bins.map(function(b){return b.slice();});}return;}
-    var p=sorted[i],rs=0;for(var j=i;j<n;j++)rs+=sorted[j];
+    var p=sorted[i],rs=0;for(var j=i;j<n;j++)rs+=sorted[j].len;
     if(bins.length+Math.ceil(rs/x)>=best.count)return;
     var seen={};
-    for(var k=0;k<bins.length;k++){var r=rems[k];if(r>=p&&!seen[r]){seen[r]=1;bins[k].push(p);rems[k]-=p;dfs(i+1,bins,rems);bins[k].pop();rems[k]+=p;}}
-    if(bins.length+1<best.count){bins.push([p]);rems.push(x-p);dfs(i+1,bins,rems);bins.pop();rems.pop();}
+    for(var k=0;k<bins.length;k++){var r=rems[k];if(r>=p.len&&!seen[r]){seen[r]=1;bins[k].push(p);rems[k]-=p.len;dfs(i+1,bins,rems);bins[k].pop();rems[k]+=p.len;}}
+    if(bins.length+1<best.count){bins.push([p]);rems.push(x-p.len);dfs(i+1,bins,rems);bins.pop();rems.pop();}
   }
   dfs(0,[],[]);
   return{bins:best.bins,timedOut:to};
@@ -1199,18 +1212,24 @@ function calcAllHorizResult() {
     return{n:n,rc:rc,L:L,k:k,t:t,nr:nr,conn:conn};
   });
   var totalFull=types.reduce(function(s,tp){return s+tp.k*tp.nr;},0);
-  var tails=[];
-  types.forEach(function(tp){if(tp.t>0)for(var i=0;i<tp.nr;i++)tails.push(tp.t);});
-  var gBins=horizGreedyPack(tails,x);
+  // Build tagged tails: {len, railNo} with global sequential rail numbering
+  var tailsTagged=[], globalRailNo=0;
+  types.forEach(function(tp){
+    for(var i=0;i<tp.nr;i++){
+      globalRailNo++;
+      if(tp.t>0)tailsTagged.push({len:tp.t,railNo:globalRailNo});
+    }
+  });
+  var gBins=horizGreedyPack(tailsTagged,x);
   var packBins,timedOut=false;
-  if(useOffcutsH&&tails.length>0){var dr=horizDfsPack(tails,x,gBins);packBins=dr.bins;timedOut=dr.timedOut;}
-  else if(!useOffcutsH&&tails.length>0){packBins=tails.map(function(t){return[t];});}
+  if(useOffcutsH&&tailsTagged.length>0){var dr=horizDfsPack(tailsTagged,x,gBins);packBins=dr.bins;timedOut=dr.timedOut;}
+  else if(!useOffcutsH&&tailsTagged.length>0){packBins=tailsTagged.map(function(t){return[t];});}
   else{packBins=[];}
   var newRails=packBins.length;
   var totalConn=types.reduce(function(s,tp){return s+tp.conn*tp.nr;},0);
   var wastes=[],reusable=[];
   packBins.forEach(function(b){
-    var left=x-b.reduce(function(s,p){return s+p;},0);
+    var left=x-b.reduce(function(s,p){return s+p.len;},0);
     if(left>0){if(left>=offcutMinH)reusable.push(left);else wastes.push(left);}
   });
   return{
@@ -1221,7 +1240,7 @@ function calcAllHorizResult() {
     wastes:wastes,reusable:reusable,
     totalWaste:wastes.reduce(function(s,w){return s+w;},0),
     greedyBound:totalFull+gBins.length,
-    bins:packBins,tails:tails,timedOut:timedOut
+    bins:packBins,tails:tailsTagged,timedOut:timedOut
   };
 }
 
