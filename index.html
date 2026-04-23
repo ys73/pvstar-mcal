@@ -644,7 +644,8 @@ const T = {
     staleBanner:'输入条件已变更，请重新点击"计算总需求"重新计算',
     horizPrintBtn:'🖨 打印切割清单',
     horizDetailTitle:'横装计算详情',
-    offcutMinWarn:'提示：余料最小长度超过导轨长度的1/2，余料将无法跨导轨复用'
+    offcutMinWarn:'提示：余料最小长度超过导轨长度的1/2，余料将无法跨导轨复用',
+    useOffcutsLabel:'使用余料'
   },
   en: {
     pageTitle:        'Pitched Roof PV Mounting System Calculator',
@@ -749,7 +750,8 @@ const T = {
     staleBanner:'Inputs changed — please click "Calculate" again to update results',
     horizPrintBtn:'🖨 Print Cutting List',
     horizDetailTitle:'Horizontal Detail',
-    offcutMinWarn:'Note: Min offcut length exceeds half the raw rail length — offcuts cannot be shared across rails'
+    offcutMinWarn:'Note: Min offcut length exceeds half the raw rail length — offcuts cannot be shared across rails',
+    useOffcutsLabel:'Use offcuts'
   }
 };
 
@@ -784,6 +786,7 @@ function setLang(l) {
   var sbt = document.getElementById('stale-banner-text'); if(sbt) sbt.textContent = T[l].staleBanner || '输入条件已变更，请重新点击"计算总需求"重新计算';
   var hpb = document.getElementById('horizPrintBtn');    if(hpb) hpb.textContent = T[l].horizPrintBtn || '🖨 打印切割清单';
   var hdt = document.getElementById('horizDetailTitle'); if(hdt) hdt.textContent = T[l].horizDetailTitle || '横装计算详情';
+  var uol = document.getElementById('use-offcuts-label'); if(uol) uol.textContent = T[l].useOffcutsLabel || '使用余料';
 }
 
 // ════════════════════════════════════════════
