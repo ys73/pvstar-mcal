@@ -1849,7 +1849,7 @@ function getInstallSettings() {
   var db = getPvstarDB();
   var s = db.settings || {};
   return {
-    panelGap:     s.panelGap     !== undefined ? Number(s.panelGap)     : 0,
+    panelGap:     s.panelGap     !== undefined ? Number(s.panelGap)     : 20,
     railOverhang: s.railOverhang !== undefined ? Number(s.railOverhang) : 50
   };
 }
