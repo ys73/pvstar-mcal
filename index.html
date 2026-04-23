@@ -280,7 +280,7 @@ body{font-family:'Inter',sans-serif;background:#FAF9F7;color:#1A1A1A;overflow-x:
     <div id="panelSizeBar" style="display:flex;align-items:center;gap:16px;margin-bottom:28px;padding:14px 18px;background:#f8f8f8;border:1px solid #e5e5e5;flex-wrap:wrap;">
       <span id="panelSizeLabel" style="font-size:13px;font-weight:500;white-space:nowrap;color:#000;">光伏板规格</span>
       <div id="panelSizeOptions" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-      <div id="panelOrientOptions" style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;"></div>
+      <div id="panelOrientOptions" style="display:none;"></div>
     </div>
 
     <!-- Brand tabs -->
@@ -303,9 +303,9 @@ body{font-family:'Inter',sans-serif;background:#FAF9F7;color:#1A1A1A;overflow-x:
           <div class="space-y-6">
             <!-- Install mode toggle -->
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <button id="btn-vertical" class="mode-btn active" onclick="setInstallMode('vertical')" id="btn-vertical">竖装</button>
+              <button id="btn-vertical" class="mode-btn active" onclick="setInstallMode('vertical')">竖装</button>
               <button id="btn-horizontal" class="mode-btn" onclick="setInstallMode('horizontal')">横装</button>
-              <button class="horiz-help-btn" onclick="openHorizHelp()">?</button>
+              <button class="horiz-help-btn" onclick="openHorizHelp(0)" title="安装说明">?</button>
             </div>
             <!-- Horizontal options (hidden by default) -->
             <div id="horiz-options" style="display:none;padding:10px 14px;background:#FFF7ED;border-left:3px solid #D97706;border-radius:0 6px 6px 0;font-size:13px;">
@@ -316,7 +316,7 @@ body{font-family:'Inter',sans-serif;background:#FAF9F7;color:#1A1A1A;overflow-x:
               </label>
               <div id="offcut-row" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
                 <span id="offcut-min-label" style="font-size:12px;color:#666;">最小余料长度:</span>
-                <input id="offcutMinInput" type="number" min="0" step="50" value="500" onchange="offcutMinH=Number(this.value)||500" style="width:72px;padding:3px 6px;border:1px solid #e5e5e5;font-size:13px;text-align:center;border-radius:4px;font-family:'Inter',sans-serif;">
+                <input id="offcutMinInput" type="number" min="0" step="50" value="0" onchange="offcutMinH=Number(this.value)" style="width:72px;padding:3px 6px;border:1px solid #e5e5e5;font-size:13px;text-align:center;border-radius:4px;font-family:'Inter',sans-serif;">
                 <span style="font-size:12px;color:#666;">mm</span>
               </div>
             </div>
@@ -882,7 +882,7 @@ function addScenario() {
       return;
     }
     // Horizontal scenarios are never merged (each may have different rail optimisation)
-    scenarios.push({ id: Date.now(), arrangement, quantity, panelCount: arrangement * quantity, rowCount: quantity, mode: 'horizontal', _horizResult: horizResult });
+    scenarios.push({ id: Date.now(), arrangement, quantity, panelCount: arrangement * quantity, rowCount: quantity, mode: 'horizontal', _horizResult: horizResult, _useOffcuts: useOffcutsH });
   } else {
     const existing = scenarios.find(s => s.arrangement === arrangement && (!s.mode || s.mode === 'vertical'));
     if (existing) {
@@ -919,7 +919,7 @@ function updateScenarioList() {
     <div class="scenario-item animate-slide-up">
       <button class="remove-btn" onclick="removeScenario(${s.id})"><svg class="inline w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></svg></button>
       <div class="font-medium text-sm"><span style="font-size:10px;padding:1px 5px;border-radius:3px;margin-right:4px;${modeBg}">${modeLabel}</span>${s.arrangement} ${t.perRow} × ${s.quantity} ${t.rows}${extraInfo}</div>
-      <div class="text-xs text-gray-500">${t.total} ${s.panelCount} ${t.panels}</div>
+      <div class="text-xs text-gray-500">${t.total} ${s.panelCount} ${t.panels}${isH ? ` <button onclick="event.stopPropagation();openHorizDetail(${s.id})" style="font-size:10px;padding:1px 6px;border:1px solid #D97706;color:#D97706;background:#FFF7ED;cursor:pointer;border-radius:3px;margin-left:6px;">详情</button>` : ''}</div>
     </div>`;
   }).join('');
 }
@@ -956,18 +956,61 @@ function setInstallMode(mode) {
   buildRadios();
 }
 
-function openHorizHelp() {
-  var t = T[lang];
-  if (t.horizHelpTitle) document.getElementById('horiz-help-title').textContent = t.horizHelpTitle;
-  if (t.horizHelpBody)  document.getElementById('horiz-help-body').textContent  = t.horizHelpBody;
-  if (t.horizHelpLblV)  document.getElementById('horiz-help-lbl-v').textContent = t.horizHelpLblV;
-  if (t.horizHelpLblH)  document.getElementById('horiz-help-lbl-h').textContent = t.horizHelpLblH;
+function openHorizHelp(tab) {
+  switchHelpTab(tab || 0);
   document.getElementById('horizHelpModal').style.display = 'block';
   document.body.style.overflow = 'hidden';
+}
+function switchHelpTab(idx) {
+  [0,1].forEach(function(i) {
+    document.getElementById('help-page-'+i).style.display = i===idx ? 'block' : 'none';
+    var btn = document.getElementById('help-tab-'+(i===0?'v':'h'));
+    if (btn) { btn.style.background = i===idx?'#1A1A1A':'#f5f5f5'; btn.style.color = i===idx?'#fff':'#666'; }
+  });
 }
 function closeHorizHelp() {
   document.getElementById('horizHelpModal').style.display = 'none';
   document.body.style.overflow = '';
+}
+function openHorizDetail(scenarioId) {
+  var s = scenarios.find(function(sc) { return sc.id === scenarioId; });
+  if (!s || s.mode !== 'horizontal' || !s._horizResult) return;
+  var h = s._horizResult;
+  var x = h._x, y = h._y, L = h._L, n = h._n, rc = s.rowCount;
+  var useOff = s._useOffcuts;
+  var strands = 2 * rc;
+  var piecesPerStrand = Math.ceil(L / x);
+  var joins = piecesPerStrand - 1;
+  var el = document.getElementById('horizDetailContent');
+  el.innerHTML =
+    '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
+    '<tr style="background:#f8f8f8;"><th style="text-align:left;padding:7px 10px;border:1px solid #e5e5e5;">参数</th><th style="text-align:right;padding:7px 10px;border:1px solid #e5e5e5;">数值</th></tr>' +
+    row('光伏板长边 (y)', y + ' mm') +
+    row('导轨长度 (x)', x + ' mm') +
+    row('每排块数 (n)', n) +
+    row('排数', rc) +
+    row('成品导轨长度 L = n×y+100', L + ' mm') +
+    row('每条成品导轨所需原料段数 = ceil(L/x)', piecesPerStrand) +
+    row('每条成品导轨连接件 = ceil-1', joins) +
+    '<tr style="background:#f8f8f8;"><td colspan="2" style="padding:7px 10px;border:1px solid #e5e5e5;font-weight:600;">汇总</td></tr>' +
+    row('成品导轨总条数 = 2×排数', strands) +
+    row('导轨（新开原料根数）', h.rails) +
+    row('导轨连接件 = (ceil-1)×2×排数', h.railConnectors) +
+    row('挂钩 = ' + (n<3?'n×4':'(n-2)×3+8'), h.hooks/rc + '/排 → 合计 ' + h.hooks) +
+    row('侧压块 = 4×排数', h.endClamps) +
+    row('中压块 = 2×(n-1)×排数', h.midClamps) +
+    row('导轨端盖 = 2对×排数', h.leftEndCaps + ' 对') +
+    '</table>' +
+    (useOff ? '<p style="font-size:12px;color:#16a34a;margin-top:10px;">✓ 已启用余料优化（贪心算法）</p>' : '');
+  document.getElementById('horizDetailModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+function closeHorizDetail() {
+  document.getElementById('horizDetailModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+function row(label, val) {
+  return '<tr><td style="padding:6px 10px;border:1px solid #e5e5e5;">' + label + '</td><td style="padding:6px 10px;border:1px solid #e5e5e5;text-align:right;font-weight:500;">' + val + '</td></tr>';
 }
 
 function bestFitGreedy(pieces, rawLen, minOff) {
@@ -1428,7 +1471,16 @@ function getEffectivePacks() {
       packSize:    dbPkg && dbPkg.packSize != null ? dbPkg.packSize : p.packSize,
       calcFrom:    dbPkg && dbPkg.calcFrom    ? dbPkg.calcFrom    : p.calcFrom,
       nameZh:      dbPkg && dbPkg.nameZh      ? dbPkg.nameZh      : p.nameZh,
-      nameEn:      dbPkg && dbPkg.nameEn      ? dbPkg.nameEn      : p.nameEn
+      nameEn:      dbPkg && dbPkg.nameEn      ? dbPkg.nameEn      : p.nameEn,
+      contents: (function() {
+        var newSz = (dbPkg && dbPkg.packSize != null) ? dbPkg.packSize : p.packSize;
+        var oldSz = p.packSize;
+        if (newSz === oldSz || typeof p.contents !== 'object' || Array.isArray(p.contents)) return p.contents;
+        var scale = newSz / oldSz;
+        var s = {};
+        Object.keys(p.contents).forEach(function(k) { s[k] = Math.round(p.contents[k] * scale); });
+        return s;
+      })()
     });
   });
 }
@@ -1463,7 +1515,7 @@ let _lastTotForRoundup = null;
 // ── Horizontal mode state ──
 let installMode  = 'vertical'; // 'vertical' | 'horizontal'
 let useOffcutsH  = false;
-let offcutMinH   = 500;        // mm
+let offcutMinH   = 0;          // mm
 
 let _packAdjustments = {};   // { sku: delta }
 let _currentPackCounts = {}; // { sku: finalCount }
@@ -1957,26 +2009,67 @@ document.addEventListener('keydown', function(e) {
 });
 </script>
 
-<!-- Horizontal Install Help Modal -->
+<!-- Install Help Modal (2 tabs) -->
 <div id="horizHelpModal" style="display:none;position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,.5);overflow-y:auto;backdrop-filter:blur(2px);" onclick="if(event.target===this)closeHorizHelp()">
-  <div style="background:#fff;max-width:660px;margin:40px auto;border-radius:12px;padding:28px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2);">
-    <button onclick="closeHorizHelp()" style="position:absolute;top:12px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:#aaa;">&times;</button>
-    <div style="font-size:1.05rem;font-weight:500;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #E8E4DF;" id="horiz-help-title">横装安装说明</div>
-    <p style="font-size:13px;color:#444;line-height:1.7;margin-bottom:16px;" id="horiz-help-body">PVSTAR和Clenergy支架支持导轨90°旋转，旋转后的计算方式和竖装一样，只有在不旋转同时横装时才采用横装的计算方式。</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
-      <div style="text-align:center;">
-        <div style="font-size:12px;color:#888;margin-bottom:6px;" id="horiz-help-lbl-v">竖装 Vertical</div>
-        <img src="竖装.png" alt="竖装" style="width:100%;border:1px solid #e5e5e5;border-radius:6px;object-fit:contain;max-height:220px;">
-      </div>
-      <div style="text-align:center;">
-        <div style="font-size:12px;color:#888;margin-bottom:6px;" id="horiz-help-lbl-h">横装 Horizontal</div>
-        <img src="横装.png" alt="横装" style="width:100%;border:1px solid #e5e5e5;border-radius:6px;object-fit:contain;max-height:220px;">
-      </div>
+  <div style="background:#fff;max-width:680px;margin:40px auto;border-radius:12px;padding:0;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden;">
+    <button onclick="closeHorizHelp()" style="position:absolute;top:12px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:#aaa;z-index:10;">&times;</button>
+    <!-- Tab buttons -->
+    <div style="display:flex;border-bottom:1px solid #E8E4DF;">
+      <button id="help-tab-v" onclick="switchHelpTab(0)" style="flex:1;padding:14px 16px;font-size:13px;font-weight:500;border:none;background:#1A1A1A;color:#fff;cursor:pointer;transition:all .2s;">竖装 Vertical</button>
+      <button id="help-tab-h" onclick="switchHelpTab(1)" style="flex:1;padding:14px 16px;font-size:13px;font-weight:500;border:none;background:#f5f5f5;color:#666;cursor:pointer;transition:all .2s;">横装 Horizontal</button>
     </div>
-    <video controls style="width:100%;border-radius:6px;" preload="none">
-      <source src="chs.mp4" type="video/mp4">
-      Your browser does not support video.
-    </video>
+    <!-- Tab 0: Vertical formula -->
+    <div id="help-page-0" style="padding:24px;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:#1A1A1A;">PVSTAR 竖装计算公式</div>
+      <ul style="font-size:13px;color:#444;line-height:2;list-style:none;padding:0;margin:0;">
+        <li>• <b>导轨</b>：每块组件 1 根</li>
+        <li>• <b>挂钩</b>：每排 2×(n+1) 个</li>
+        <li>• <b>侧压块</b>：每排 4 个</li>
+        <li>• <b>中压块</b>：每排 2×(n−1) 个</li>
+        <li>• <b>导轨连接件</b>：≤2块→0，≥3块→每排 2×round(n/2)−2</li>
+        <li>• <b>导轨端盖</b>：每排左 2 个、右 2 个（成对，共 2 对）</li>
+        <li>• <b>穿刺垫片、线夹、避雷线夹</b>已包含在配件包内</li>
+        <li style="color:#D97706;margin-top:8px;">⚠ 每排组件超过 12 片时导轨过长，为避免热胀冷缩变形，建议断开另起一排</li>
+      </ul>
+    </div>
+    <!-- Tab 1: Horizontal formula + images + video -->
+    <div id="help-page-1" style="padding:24px;display:none;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:14px;color:#1A1A1A;">PVSTAR 横装计算公式</div>
+      <ul style="font-size:13px;color:#444;line-height:2;list-style:none;padding:0;margin:0 0 16px;">
+        <li>• <b>导轨（不用余料）</b>：roundup((n×板长+2×突出长度) / 导轨长) × 2 × 排数</li>
+        <li>• <b>导轨（用余料）</b>：深度优先搜索 DFS 算法（贪心算法供参考）</li>
+        <li>• <b>挂钩</b>：每排 n&lt;3 → n×4，n≥3 → (n−2)×3+8</li>
+        <li>• <b>侧压块</b>：每排 4 个</li>
+        <li>• <b>中压块</b>：每排 2×(n−1) 个</li>
+        <li>• <b>导轨连接件</b>：(n×板长 + 2×突出 + (n−1)×间距) / 导轨长</li>
+        <li>• <b>导轨端盖</b>：每排左 2 个、右 2 个（成对，共 2 对）</li>
+        <li>• <b>穿刺垫片、线夹、避雷线夹</b>已包含在配件包内</li>
+        <li style="color:#D97706;margin-top:8px;">⚠ 每排组件超过 8 片时导轨过长，为避免热胀冷缩变形，建议断开另起一排</li>
+      </ul>
+      <p style="font-size:12px;color:#888;margin-bottom:14px;">PVSTAR和Clenergy支架支持导轨90°旋转，旋转后计算方式和竖装一样，只有在不旋转同时横装时才采用横装计算方式。</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div style="text-align:center;">
+          <div style="font-size:12px;color:#888;margin-bottom:6px;">竖装 Vertical</div>
+          <img src="竖装.png" alt="竖装" style="width:100%;border:1px solid #e5e5e5;border-radius:6px;object-fit:contain;max-height:200px;">
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:12px;color:#888;margin-bottom:6px;">横装 Horizontal</div>
+          <img src="横装.png" alt="横装" style="width:100%;border:1px solid #e5e5e5;border-radius:6px;object-fit:contain;max-height:200px;">
+        </div>
+      </div>
+      <video controls style="width:100%;border-radius:6px;" preload="none">
+        <source src="chs.mp4" type="video/mp4">
+      </video>
+    </div>
+  </div>
+</div>
+
+<!-- Horizontal Detail Modal -->
+<div id="horizDetailModal" style="display:none;position:fixed;inset:0;z-index:9991;background:rgba(0,0,0,.5);overflow-y:auto;backdrop-filter:blur(2px);" onclick="if(event.target===this)closeHorizDetail()">
+  <div style="background:#fff;max-width:600px;margin:40px auto;border-radius:12px;padding:28px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <button onclick="closeHorizDetail()" style="position:absolute;top:12px;right:16px;border:none;background:none;font-size:22px;cursor:pointer;color:#aaa;">&times;</button>
+    <div style="font-size:1.05rem;font-weight:500;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #E8E4DF;">横装计算详情</div>
+    <div id="horizDetailContent"></div>
   </div>
 </div>
 
