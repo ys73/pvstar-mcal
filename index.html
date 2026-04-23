@@ -984,7 +984,7 @@ function updateScenarioList() {
   list.innerHTML = scenarios.map(s => {
     var isH = s.mode === 'horizontal';
     var modeLabel = isH ? (lang==='zh'?'横':'H') : (lang==='zh'?'竖':'V');
-    var modeBg = isH ? 'background:#D97706;color:#fff;' : 'background:#e5e5e5;color:#555;';
+    var modeBg = isH ? 'background:#D97706;color:#fff;' : 'background:#1A1A1A;color:#fff;';
     var extraInfo = isH && s._horizResult
       ? `<span style="font-size:10px;color:#D97706;"> · ${s._horizResult._n||s.arrangement}×${s._horizResult._y||0}mm L${s._horizResult._L||0}mm</span>`
       : '';
