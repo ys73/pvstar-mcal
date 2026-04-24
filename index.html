@@ -1110,14 +1110,9 @@ function openHorizDetail(sid) {
   var tab2='';
   if(hr.fullRails>0){
     var fs=(tl.hd_full_supply||'整根直供：{n} 根（{x}mm）').replace('{n}',hr.fullRails).replace('{x}',x);
-    tab2+='<div style="margin-bottom:8px;padding:8px 12px;background:#f0fdf4;border-radius:6px;border-left:3px solid #16a34a;font-size:12px;"><b>'+fs+'</b></div>';
-    for(var _fi=0;_fi<hr.fullRails;_fi++){
-      tab2+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'
-        +'<span style="font-size:11px;font-weight:600;min-width:56px;text-align:right;flex-shrink:0;">'+rawLbl+'#'+(_fi+1)+'</span>'
-        +'<div style="flex:1;display:flex;height:28px;border:1px solid #86efac;border-radius:4px;overflow:hidden;">'
-        +'<div style="width:100%;background:#d1fae5;display:flex;align-items:center;justify-content:center;font-size:11px;color:#065f46;font-weight:600;">'+(tl.hd_full_seg||'整段')+' '+x+'mm</div>'
-        +'</div></div>';
-    }
+    var fsRange=rawLbl+'#1 ~ '+rawLbl+'#'+hr.fullRails;
+    tab2+='<div style="margin-bottom:8px;padding:8px 14px;background:#f0fdf4;border-radius:6px;border-left:3px solid #16a34a;font-size:12px;color:#065f46;">'
+      +'<b>'+fs+'</b>　<span style="font-weight:400;color:#374151;">'+fsRange+'</span></div>';
   }
   if(hr.bins.length){
     var tn=(tl.hd_tail_new||'新开原料（为尾段）：{n} 根').replace('{n}',hr.bins.length);
@@ -1502,13 +1497,8 @@ function printHorizCuttingList() {
   var sec2 = '<h3 style="margin:20px 0 8px;font-size:14px;">' + (tl.hd_t2 || '原料切割') + '</h3>';
   if (hr.fullRails > 0) {
     var fs = (tl.hd_full_supply || '整根直供：{n} 根（{x}mm）').replace('{n}', hr.fullRails).replace('{x}', x);
-    sec2 += '<p style="font-size:12px;padding:6px 10px;background:#f0fdf4;border-left:3px solid #16a34a;margin-bottom:6px;"><b>' + fs + '</b></p>';
-    for (var _pfi = 0; _pfi < hr.fullRails; _pfi++) {
-      sec2 += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
-        + '<span style="font-size:11px;font-weight:600;min-width:52px;text-align:right;flex-shrink:0;">' + _pRawLbl + '#' + (_pfi+1) + '</span>'
-        + '<div style="flex:1;height:22px;background:#d1fae5;border:1px solid #86efac;border-radius:3px;display:flex;align-items:center;justify-content:center;">'
-        + '<span style="font-size:10px;color:#065f46;font-weight:600;">' + (tl.hd_full_seg||'整段') + ' ' + x + 'mm</span></div></div>';
-    }
+    var fsRange = _pRawLbl + '#1 ~ ' + _pRawLbl + '#' + hr.fullRails;
+    sec2 += '<p style="font-size:12px;padding:6px 10px;background:#f0fdf4;border-left:3px solid #16a34a;margin-bottom:6px;color:#065f46;"><b>' + fs + '</b>　' + fsRange + '</p>';
   }
   if (hr.bins.length) {
     var tn = (tl.hd_tail_new || '新开原料（为尾段）：{n} 根').replace('{n}', hr.bins.length);
