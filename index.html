@@ -1050,7 +1050,7 @@ function closeHorizHelp() {
   document.body.style.overflow = '';
 }
 function switchHDTab(i) {
-  [0,1,2,3].forEach(function(j){
+  [0,1,2].forEach(function(j){
     var b=document.getElementById('hdt'+j), p=document.getElementById('hdpage'+j);
     if(b)b.style.cssText='flex:1;padding:10px 6px;font-size:12px;border:none;cursor:pointer;'+(j===i?'background:#1A1A1A;color:#fff;font-weight:500;':'background:#f5f5f5;color:#666;');
     if(p)p.style.display=j===i?'block':'none';
@@ -1103,36 +1103,50 @@ function openHorizDetail(sid) {
   });
   var tab1='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">'
     +'<tr>'+t1h.map(TH).join('')+'</tr>'+rows1+'</table></div>';
-  // Tab2 原料切割
+  // Tab2 原料切割 + 尾段分配（合并，比例条可视化）
+  var railLbl=tl.hd_rail||'导轨';
+  var rawLbl=tl.hd_raw_rail||'原料';
+  var remLbl=tl.hd_rem||'余';
   var tab2='';
   if(hr.fullRails>0){
     var fs=(tl.hd_full_supply||'整根直供：{n} 根（{x}mm）').replace('{n}',hr.fullRails).replace('{x}',x);
-    tab2+='<div style="margin-bottom:10px;padding:10px;background:#f0fdf4;border-radius:6px;border-left:3px solid #16a34a;font-size:12px;"><b>'+fs+'</b><br>'+(tl.hd_full_desc||'整根段直接使用原料，无切割无废料。')+'</div>';
+    tab2+='<div style="margin-bottom:8px;padding:8px 12px;background:#f0fdf4;border-radius:6px;border-left:3px solid #16a34a;font-size:12px;"><b>'+fs+'</b></div>';
+    for(var _fi=0;_fi<hr.fullRails;_fi++){
+      tab2+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'
+        +'<span style="font-size:11px;font-weight:600;min-width:56px;text-align:right;flex-shrink:0;">'+rawLbl+'#'+(_fi+1)+'</span>'
+        +'<div style="flex:1;display:flex;height:28px;border:1px solid #86efac;border-radius:4px;overflow:hidden;">'
+        +'<div style="width:100%;background:#d1fae5;display:flex;align-items:center;justify-content:center;font-size:11px;color:#065f46;font-weight:600;">'+(tl.hd_full_seg||'整段')+' '+x+'mm</div>'
+        +'</div></div>';
+    }
   }
   if(hr.bins.length){
     var tn=(tl.hd_tail_new||'新开原料（为尾段）：{n} 根').replace('{n}',hr.bins.length);
-    tab2+='<div style="font-weight:600;font-size:13px;margin-bottom:8px;">'+tn+'</div>';
+    tab2+='<div style="font-weight:600;font-size:12px;margin:'+(hr.fullRails?'10px':'0')+'0 8px;color:#374151;">'+tn+'</div>';
     hr.bins.forEach(function(b,bi){
       var used=b.reduce(function(s,p){return s+p.len;},0),left=x-used;
-      var pcs=b.map(function(p){return '<span style="background:#fef3c7;color:#92400e;padding:2px 5px;border-radius:3px;font-size:11px;">'+p.len+'mm</span>';}).join(' + ');
-      var ls=left>0?'<span style="background:'+(left>=offcutMinH?'#d1fae5;color:#065f46':'#fee2e2;color:#991b1b')+';padding:2px 5px;border-radius:3px;font-size:11px;margin-left:4px;">+'+left+'mm</span>':'';
-      tab2+='<div style="padding:8px 10px;border:1px solid #e5e5e5;border-radius:6px;margin-bottom:6px;font-size:12px;">'
-        +'<b>#'+(bi+1)+'</b> ('+x+'mm)：'+pcs+' = '+used+'mm'+ls+'</div>';
+      var rawNo=hr.fullRails+bi+1;
+      var segs=b.map(function(p){
+        var pct=(p.len/x*100).toFixed(2);
+        return '<div style="width:'+pct+'%;background:#fef3c7;border-right:1px solid #f59e0b;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0 3px;box-sizing:border-box;flex-shrink:0;min-width:0;">'
+          +'<span style="font-size:10px;color:#92400e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;">'+railLbl+'#'+p.railNo+' '+p.len+'mm</span>'
+          +'</div>';
+      }).join('');
+      var remSeg='';
+      if(left>0){
+        var remPct=(left/x*100).toFixed(2);
+        var isReus=left>=offcutMinH;
+        remSeg='<div style="width:'+remPct+'%;background:'+(isReus?'#d1fae5':'#fee2e2')+';display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0 3px;box-sizing:border-box;flex-shrink:0;min-width:0;">'
+          +'<span style="font-size:10px;color:'+(isReus?'#065f46':'#991b1b')+';white-space:nowrap;">'+remLbl+left+'mm</span>'
+          +'</div>';
+      }
+      tab2+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'
+        +'<span style="font-size:11px;font-weight:600;min-width:56px;text-align:right;flex-shrink:0;">'+rawLbl+'#'+rawNo+'</span>'
+        +'<div style="flex:1;display:flex;height:32px;border:1px solid #d1d5db;border-radius:4px;overflow:hidden;">'
+        +segs+remSeg+'</div></div>';
     });
   }
+  if(!hr.fullRails&&!hr.bins.length)tab2+='<p style="color:#888;font-size:13px;">'+(tl.hd_tab3_empty||'无需切割')+'</p>';
   if(hr.timedOut)tab2+='<p style="font-size:11px;color:#D97706;margin-top:6px;">'+(tl.hd_timeout||'⚠ DFS超时，已采用贪心近似结果')+'</p>';
-  // Tab3 尾段分配 — show which rail number each tail belongs to
-  var railLbl=tl.hd_rail||'导轨';
-  var tab3=hr.tails.length?hr.bins.map(function(b,bi){
-    var used=b.reduce(function(s,p){return s+p.len;},0),left=x-used;
-    var pcs=b.map(function(p){
-      return '<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:4px;font-size:11px;margin-right:4px;">'
-        +'<b>'+railLbl+'#'+p.railNo+'</b> '+p.len+'mm</span>';
-    }).join('');
-    var ls=left>0?'<span style="background:'+(left>=offcutMinH?'#d1fae5;color:#065f46':'#fee2e2;color:#991b1b')+';padding:3px 8px;border-radius:4px;font-size:11px;margin-left:2px;">'+(tl.hd_rem||'余')+left+'mm</span>':'';
-    return '<div style="padding:8px 10px;border:1px solid #e5e5e5;border-radius:6px;margin-bottom:6px;font-size:12px;">'
-      +'<span style="font-weight:600;margin-right:8px;">'+(tl.hd_raw_rail||'原料')+'#'+(bi+1)+'</span>'+pcs+ls+'</div>';
-  }).join(''):'<p style="color:#888;font-size:13px;">'+(tl.hd_tab3_empty||'无尾段')+'</p>';
 
   var html=
     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;">'
@@ -1145,13 +1159,13 @@ function openHorizDetail(sid) {
     +'</div>'
     +'<div style="display:flex;border-bottom:1px solid #E8E4DF;margin-bottom:14px;">'
     +'<button id="hdt0" onclick="switchHDTab(0)"></button><button id="hdt1" onclick="switchHDTab(1)"></button>'
-    +'<button id="hdt2" onclick="switchHDTab(2)"></button><button id="hdt3" onclick="switchHDTab(3)"></button>'
+    +'<button id="hdt2" onclick="switchHDTab(2)"></button>'
     +'</div>'
     +'<div id="hdpage0">'+tab0+'</div><div id="hdpage1" style="display:none">'+tab1+'</div>'
-    +'<div id="hdpage2" style="display:none">'+tab2+'</div><div id="hdpage3" style="display:none">'+tab3+'</div>';
+    +'<div id="hdpage2" style="display:none">'+tab2+'</div>';
 
   document.getElementById('horizDetailContent').innerHTML=html;
-  [tl.hd_t0,tl.hd_t1,tl.hd_t2,tl.hd_t3].forEach(function(lbl,i){var b=document.getElementById('hdt'+i);if(b)b.textContent=lbl||['汇总','成品导轨','原料切割','尾段分配'][i];});
+  [tl.hd_t0,tl.hd_t1,tl.hd_t2].forEach(function(lbl,i){var b=document.getElementById('hdt'+i);if(b)b.textContent=lbl||['汇总','成品导轨','原料切割'][i];});
   switchHDTab(0);
   document.getElementById('horizDetailModal').style.display='block';
   document.body.style.overflow='hidden';
@@ -1483,41 +1497,49 @@ function printHorizCuttingList() {
   var sec1 = '<h3 style="margin:20px 0 8px;font-size:14px;">' + (tl.hd_t1 || '成品导轨') + '</h3>'
     + '<table style="width:100%;border-collapse:collapse;margin-bottom:12px;"><tr>' + t1h.map(th).join('') + '</tr>' + fr1 + '</table>';
 
-  // Section 2: Raw cutting
+  // Section 2: Raw cutting + Tail assignment (merged)
+  var _pRailLbl = tl.hd_rail||'导轨', _pRawLbl = tl.hd_raw_rail||'原料', _pRemLbl = tl.hd_rem||'余';
   var sec2 = '<h3 style="margin:20px 0 8px;font-size:14px;">' + (tl.hd_t2 || '原料切割') + '</h3>';
   if (hr.fullRails > 0) {
     var fs = (tl.hd_full_supply || '整根直供：{n} 根（{x}mm）').replace('{n}', hr.fullRails).replace('{x}', x);
-    sec2 += '<p style="font-size:12px;padding:6px 10px;background:#f0fdf4;border-left:3px solid #16a34a;margin-bottom:8px;"><b>' + fs + '</b></p>';
+    sec2 += '<p style="font-size:12px;padding:6px 10px;background:#f0fdf4;border-left:3px solid #16a34a;margin-bottom:6px;"><b>' + fs + '</b></p>';
+    for (var _pfi = 0; _pfi < hr.fullRails; _pfi++) {
+      sec2 += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+        + '<span style="font-size:11px;font-weight:600;min-width:52px;text-align:right;flex-shrink:0;">' + _pRawLbl + '#' + (_pfi+1) + '</span>'
+        + '<div style="flex:1;height:22px;background:#d1fae5;border:1px solid #86efac;border-radius:3px;display:flex;align-items:center;justify-content:center;">'
+        + '<span style="font-size:10px;color:#065f46;font-weight:600;">' + (tl.hd_full_seg||'整段') + ' ' + x + 'mm</span></div></div>';
+    }
   }
   if (hr.bins.length) {
     var tn = (tl.hd_tail_new || '新开原料（为尾段）：{n} 根').replace('{n}', hr.bins.length);
-    sec2 += '<p style="font-size:13px;font-weight:600;margin-bottom:6px;">' + tn + '</p>';
+    sec2 += '<p style="font-size:12px;font-weight:600;margin:' + (hr.fullRails?'10px':'0') + ' 0 6px;">' + tn + '</p>';
     hr.bins.forEach(function(b, bi) {
       var used = b.reduce(function(s,p){return s+p.len;},0), left = x - used;
-      var pcs = b.map(function(p){return p.len+'mm';}).join(' + ');
-      var leftStr = left > 0 ? ' → ' + (isZh ? '余' : 'rem ') + left + 'mm' + (left >= offcutMinH ? ' ✓' : ' ✗') : '';
-      sec2 += '<p style="font-size:12px;padding:5px 8px;border:1px solid #e5e7eb;border-radius:4px;margin-bottom:4px;"><b>#' + (bi+1) + '</b> (' + x + 'mm)：' + pcs + ' = ' + used + 'mm' + leftStr + '</p>';
+      var rawNo = hr.fullRails + bi + 1;
+      var segs = b.map(function(p){
+        var pct = (p.len/x*100).toFixed(2);
+        return '<div style="width:'+pct+'%;background:#fef3c7;border-right:1px solid #f59e0b;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0 2px;box-sizing:border-box;flex-shrink:0;">'
+          +'<span style="font-size:9px;color:#92400e;white-space:nowrap;font-weight:600;">'+_pRailLbl+'#'+p.railNo+' '+p.len+'mm</span></div>';
+      }).join('');
+      var remSeg = '';
+      if (left > 0) {
+        var isReus = left >= offcutMinH;
+        remSeg = '<div style="width:'+(left/x*100).toFixed(2)+'%;background:'+(isReus?'#d1fae5':'#fee2e2')+';display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0 2px;box-sizing:border-box;flex-shrink:0;">'
+          +'<span style="font-size:9px;color:'+(isReus?'#065f46':'#991b1b')+';white-space:nowrap;">'+_pRemLbl+left+'mm</span></div>';
+      }
+      sec2 += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+        + '<span style="font-size:11px;font-weight:600;min-width:52px;text-align:right;flex-shrink:0;">' + _pRawLbl + '#' + rawNo + '</span>'
+        + '<div style="flex:1;display:flex;height:24px;border:1px solid #d1d5db;border-radius:3px;overflow:hidden;">'
+        + segs + remSeg + '</div></div>';
     });
   }
   if (hr.timedOut) sec2 += '<p style="font-size:11px;color:#D97706;">⚠ ' + (tl.hd_timeout || 'DFS超时，已采用贪心近似结果') + '</p>';
-
-  // Section 3: Tail assignment
-  var sec3 = '<h3 style="margin:20px 0 8px;font-size:14px;">' + (tl.hd_t3 || '尾段分配') + '</h3>';
-  if (!hr.tails.length) {
-    sec3 += '<p style="font-size:12px;color:#888;">' + (tl.hd_tab3_empty || '无尾段') + '</p>';
-  } else {
-    hr.bins.forEach(function(b, bi) {
-      var used = b.reduce(function(s,p){return s+p.len;},0), left = x - used;
-      var pcs = b.map(function(p){return railLbl + '#' + p.railNo + ' ' + p.len + 'mm';}).join(' | ');
-      var leftStr = left > 0 ? '  ' + (isZh ? '余' : 'rem ') + left + 'mm' + (left >= offcutMinH ? ' ✓' : ' ✗') : '';
-      sec3 += '<p style="font-size:12px;padding:5px 8px;border:1px solid #e5e7eb;border-radius:4px;margin-bottom:4px;"><b>' + (tl.hd_raw_rail||'原料') + '#' + (bi+1) + '</b>：' + pcs + leftStr + '</p>';
-    });
-  }
+  var sec3 = '';
 
   var title = isZh ? 'PVSTAR 横装切割清单' : 'PVSTAR Horizontal Cutting List';
   var win = window.open('', '_blank');
   win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + title + '</title>'
-    + '<style>body{font-family:Arial,sans-serif;padding:24px;max-width:900px;margin:0 auto;}h1{font-size:18px;border-bottom:2px solid #000;padding-bottom:8px;}h3{font-size:14px;border-left:3px solid #1e40af;padding-left:8px;color:#1e40af;}@media print{.no-print{display:none}}</style></head>'
+    + '<style>body{font-family:Arial,sans-serif;padding:24px;max-width:900px;margin:0 auto;}h1{font-size:18px;border-bottom:2px solid #000;padding-bottom:8px;}h3{font-size:14px;border-left:3px solid #1e40af;padding-left:8px;color:#1e40af;}@media print{.no-print{display:none}*{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></head>'
     + '<body><div class="no-print" style="margin-bottom:16px;"><button onclick="window.print()" style="padding:6px 16px;background:#1e40af;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;">🖨 ' + (isZh ? '打印' : 'Print') + '</button></div>'
     + '<h1>' + title + '</h1>'
     + '<p style="font-size:12px;color:#666;margin-bottom:4px;">' + (isZh ? '导轨原料长度' : 'Raw rail length') + ': ' + x + ' mm &nbsp;|&nbsp; '
