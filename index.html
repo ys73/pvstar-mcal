@@ -323,7 +323,7 @@ body{font-family:'Inter',sans-serif;background:#FAF9F7;color:#1A1A1A;overflow-x:
                   <div id="offcut-row" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;">
                     <span id="offcut-min-label" style="font-size:12px;color:#666;">最小余料长度:</span>
                     <span class="pvstar-tip"><button class="horiz-help-btn" tabindex="-1">?</button><span id="offcut-min-tip" class="pvstar-tip-box">余料达到此长度才会纳入复用池，参与后续切割；低于此长度的余料视为废料丢弃。数值越大，复用条件越严格，所需原料根数可能增加。</span></span>
-                    <input id="offcutMinInput" type="number" min="0" step="50" value="0" onchange="offcutMinH=Number(this.value);markResultsStale();var _rx=getRailLength();if(_rx&&offcutMinH>_rx/2)showToast((T[lang].offcutMinWarn||'提示：余料最小长度超过导轨长度的1/2，余料可能无法被有效复用'));" style="width:72px;padding:3px 6px;border:1px solid #e5e5e5;font-size:13px;text-align:center;border-radius:4px;font-family:'Inter',sans-serif;">
+                    <input id="offcutMinInput" type="number" min="0" step="50" value="0" oninput="offcutMinH=Number(this.value)||0;markResultsStale();" onchange="offcutMinH=Number(this.value)||0;checkOffcutMinWarn();" style="width:72px;padding:3px 6px;border:1px solid #e5e5e5;font-size:13px;text-align:center;border-radius:4px;font-family:'Inter',sans-serif;">
                     <span style="font-size:12px;color:#666;">mm</span>
                   </div>
                 </div>
@@ -1389,8 +1389,16 @@ function calculateSingleScenario(scenario) {
   return r;
 }
 
+function checkOffcutMinWarn() {
+  var x = getRailLength();
+  if (x && offcutMinH > x / 2) {
+    showToast(T[lang].offcutMinWarn || '提示：余料最小长度超过导轨长度的1/2，余料将无法跨导轨复用', 1);
+  }
+}
+
 function calculateTotal() {
   if (!scenarios.length) return;
+  if (installMode === 'horizontal' && useOffcutsH) checkOffcutMinWarn();
   clearResultsStale();
   _lastHorizResult = null;
   let tot = { rails:0,hooks:0,endClamps:0,midClamps:0,railConnectors:0,
