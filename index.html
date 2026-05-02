@@ -1784,7 +1784,26 @@ const _IDB_NAME  = 'pvstar_app';
 const _IDB_VER   = 1;
 const _IDB_STORE = 'pvstar_data';
 const _IDB_KEY   = 'main';
+const _GH_RAW    = 'https://raw.githubusercontent.com/ys73/pvstar-mcal/master/pvstar_data.json';
 let _idbConn = null, _pvstarDBCache = null;
+
+function _syncFromGitHub() {
+  fetch(_GH_RAW + '?t=' + Date.now())
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(data) {
+      if (!data || !Array.isArray(data.accessories) || !data.accessories.length) return;
+      if (!Array.isArray(data.packages)) data.packages = [];
+      if (!Array.isArray(data.panels))   data.panels   = [];
+      if (!data.settings) data.settings = {};
+      _pvstarDBCache = data;
+      // Persist to IndexedDB so offline use works
+      _openIDB().then(function(idb) {
+        idb.transaction(_IDB_STORE,'readwrite').objectStore(_IDB_STORE).put(data, _IDB_KEY);
+      }).catch(function(){});
+      buildPanelSelector();
+    })
+    .catch(function() {}); // silently ignore — fall back to local IDB
+}
 
 function _openIDB() {
   if (_idbConn) return Promise.resolve(_idbConn);
@@ -1839,7 +1858,7 @@ function initPvstarDB() {
       }
     }
   } catch(e) {}
-  return _loadIDB().then(function(db) { _pvstarDBCache = db; buildPanelSelector(); });
+  return _loadIDB().then(function(db) { _pvstarDBCache = db; buildPanelSelector(); _syncFromGitHub(); });
 }
 
 // Merge DB image/price data into a PVSTAR_PACKS-compatible list
