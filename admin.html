@@ -185,6 +185,18 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         导轨成品长度 = n × 板长 + (n-1) × 间距 + 2 × 突出量
       </div>
       <button class="btn btn-primary" onclick="saveInstallSettings()" id="saveSettingsBtn">保存安装参数</button>
+
+      <div style="border-top:1px solid #e5e5e5;margin-top:24px;padding-top:20px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px;" id="ghSyncTitle">☁ 云端同步 Cloud Sync</div>
+        <p style="font-size:11px;color:#888;margin-bottom:12px;" id="ghSyncDesc">填入 GitHub Personal Access Token（需 repo 权限），保存配件数据时自动同步到仓库，其他设备打开页面即可读取最新数据。</p>
+        <label style="display:block;font-size:12px;font-weight:500;margin-bottom:5px;" id="ghTokenLabel">GitHub Token</label>
+        <input id="settings-ghToken" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px;font-family:inherit;margin-bottom:10px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="saveGhToken()" id="saveGhTokenBtn">保存 Token</button>
+          <button class="btn" onclick="syncFromGitHub()" id="pullGhBtn">↓ 从 GitHub 拉取</button>
+          <button class="btn" onclick="syncToGitHub(loadDB().then(function(d){return d;}))" id="pushGhBtn" style="display:none;"></button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -550,6 +562,51 @@ const IDB_VER   = 1;
 const IDB_STORE = 'pvstar_data';
 const IDB_KEY   = 'main';
 const LS_LEGACY = 'pvstar_db'; // for one-time migration
+const GH_REPO   = 'ys73/pvstar-mcal';
+const GH_FILE   = 'pvstar_data.json';
+
+function getGhToken() { try { return localStorage.getItem('pvstar_github_token') || ''; } catch(e) { return ''; } }
+function setGhToken(t) { try { localStorage.setItem('pvstar_github_token', t.trim()); } catch(e) {} }
+
+async function syncToGitHub(db) {
+  var token = getGhToken();
+  if (!token) return;
+  var data = { accessories: db.accessories||[], packages: db.packages||[], panels: db.panels||[], settings: db.settings||{} };
+  var content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+  try {
+    var hdrs = { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' };
+    var metaR = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE, { headers: hdrs });
+    if (!metaR.ok) throw new Error('HTTP ' + metaR.status);
+    var meta = await metaR.json();
+    var putR = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE, {
+      method: 'PUT', headers: Object.assign({'Content-Type':'application/json'}, hdrs),
+      body: JSON.stringify({ message: 'sync: update pvstar_data.json', content: content, sha: meta.sha })
+    });
+    if (!putR.ok) { var e2 = await putR.json(); throw new Error(e2.message || 'HTTP ' + putR.status); }
+    showToast('☁ 已同步到 GitHub');
+  } catch(e) { showToast('☁ GitHub 同步失败: ' + e.message, 1); }
+}
+
+async function syncFromGitHub() {
+  try {
+    var url = 'https://raw.githubusercontent.com/' + GH_REPO + '/master/' + GH_FILE + '?t=' + Date.now();
+    var resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    var data = await resp.json();
+    if (!data || !Array.isArray(data.accessories) || !data.accessories.length) throw new Error('数据为空');
+    await saveDB(data, false);
+    showToast('☁ 已从 GitHub 拉取最新数据');
+    renderAccList(); renderPkgList();
+    try { renderPanelList(); } catch(e) {}
+    loadInstallSettings();
+  } catch(e) { showToast('☁ 拉取失败: ' + e.message, 1); }
+}
+
+function saveGhToken() {
+  var t = (document.getElementById('settings-ghToken') || {}).value || '';
+  setGhToken(t);
+  showToast(t ? 'Token 已保存，下次保存数据时自动同步' : 'Token 已清除');
+}
 
 const DEFAULT_DB = {
   accessories: [
@@ -610,7 +667,7 @@ async function loadDB() {
   });
 }
 
-async function saveDB(db) {
+async function saveDB(db, _ghSync) {
   try {
     var idb = await openIDB();
     await new Promise(function(resolve, reject) {
@@ -618,6 +675,7 @@ async function saveDB(db) {
       req.onsuccess = function() { resolve(); };
       req.onerror   = function(e) { reject(e.target.error); };
     });
+    if (_ghSync !== false) syncToGitHub(db); // fire-and-forget
     return true;
   } catch(e) {
     showToast('保存失败: ' + e.message, 1);
@@ -673,6 +731,8 @@ async function loadInstallSettings() {
   var ovEl  = document.getElementById('settings-railOverhang');
   if (gapEl) gapEl.value = s.panelGap !== undefined ? s.panelGap : 0;
   if (ovEl)  ovEl.value  = s.railOverhang !== undefined ? s.railOverhang : 50;
+  var tkEl = document.getElementById('settings-ghToken');
+  if (tkEl) tkEl.value = getGhToken();
 }
 
 async function saveInstallSettings() {
