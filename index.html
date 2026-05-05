@@ -1792,11 +1792,14 @@ function _syncFromGitHub() {
     .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function(data) {
       if (!data || !Array.isArray(data.accessories) || !data.accessories.length) return;
+      // Only overwrite local data if GitHub version is strictly newer
+      var localTs = (_pvstarDBCache && _pvstarDBCache._syncedAt) || 0;
+      var ghTs    = data._syncedAt || 0;
+      if (ghTs <= localTs) return; // local is up-to-date, keep it
       if (!Array.isArray(data.packages)) data.packages = [];
       if (!Array.isArray(data.panels))   data.panels   = [];
       if (!data.settings) data.settings = {};
       _pvstarDBCache = data;
-      // Persist to IndexedDB so offline use works
       _openIDB().then(function(idb) {
         idb.transaction(_IDB_STORE,'readwrite').objectStore(_IDB_STORE).put(data, _IDB_KEY);
       }).catch(function(){});
