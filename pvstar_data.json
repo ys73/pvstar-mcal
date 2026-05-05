@@ -252,5 +252,8 @@
     }
   ],
   "panels": [],
-  "settings": {}
+  "settings": {
+    "panelGap": 20,
+    "railOverhang": 50
+  }
 }
