@@ -571,7 +571,7 @@ function setGhToken(t) { try { localStorage.setItem('pvstar_github_token', t.tri
 async function syncToGitHub(db) {
   var token = getGhToken();
   if (!token) return;
-  var data = { accessories: db.accessories||[], packages: db.packages||[], panels: db.panels||[], settings: db.settings||{} };
+  var data = { accessories: db.accessories||[], packages: db.packages||[], panels: db.panels||[], settings: db.settings||{}, _syncedAt: db._syncedAt || Date.now() };
   var content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
   try {
     var hdrs = { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' };
@@ -669,6 +669,7 @@ async function loadDB() {
 
 async function saveDB(db, _ghSync) {
   try {
+    db._syncedAt = Date.now(); // always stamp before saving
     var idb = await openIDB();
     await new Promise(function(resolve, reject) {
       var req = idb.transaction(IDB_STORE,'readwrite').objectStore(IDB_STORE).put(db, IDB_KEY);
