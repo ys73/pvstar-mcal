@@ -254,8 +254,8 @@
   "panels": [
     {
       "id": "panel__giolkenii",
-      "nameZh": "CHSM48RN(DG)(BLH)/F-BH",
-      "nameEn": "CHSM48RN(DG)(BLH)/F-BH",
+      "nameZh": "Astronergy CHSM48RN(DG)(BLH)/F-BH 460Wp",
+      "nameEn": "Astronergy CHSM48RN(DG)(BLH)/F-BH 460Wp",
       "width": 0,
       "height": 0,
       "thickness": 0,
@@ -267,5 +267,5 @@
     }
   ],
   "settings": {},
-  "_syncedAt": 1777988192913
+  "_syncedAt": 1777988311409
 }
