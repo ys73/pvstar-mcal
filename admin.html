@@ -571,7 +571,10 @@ function setGhToken(t) { try { localStorage.setItem('pvstar_github_token', t.tri
 async function syncToGitHub(db) {
   var token = getGhToken();
   if (!token) return;
-  var data = { accessories: db.accessories||[], packages: db.packages||[], panels: db.panels||[], settings: db.settings||{}, _syncedAt: db._syncedAt || Date.now() };
+  var settings = Object.assign({}, db.settings||{});
+  var pw = localStorage.getItem('pvstar_admin_pw');
+  if (pw) settings.adminPassword = pw;
+  var data = { accessories: db.accessories||[], packages: db.packages||[], panels: db.panels||[], settings: settings, _syncedAt: db._syncedAt || Date.now() };
   var content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
   try {
     var hdrs = { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' };
@@ -595,11 +598,32 @@ async function syncFromGitHub() {
     var data = await resp.json();
     if (!data || !Array.isArray(data.accessories) || !data.accessories.length) throw new Error('数据为空');
     await saveDB(data, false);
+    if (data.settings && data.settings.adminPassword) {
+      localStorage.setItem('pvstar_admin_pw', data.settings.adminPassword);
+    }
     showToast('☁ 已从 GitHub 拉取最新数据');
     renderAccList(); renderPkgList();
     try { renderPanelList(); } catch(e) {}
     loadInstallSettings();
   } catch(e) { showToast('☁ 拉取失败: ' + e.message, 1); }
+}
+
+async function autoSyncFromGitHub() {
+  try {
+    var url = 'https://raw.githubusercontent.com/' + GH_REPO + '/master/' + GH_FILE + '?t=' + Date.now();
+    var resp = await fetch(url);
+    if (!resp.ok) return;
+    var ghData = await resp.json();
+    if (!ghData || !Array.isArray(ghData.accessories) || !ghData.accessories.length) return;
+    var localDb = await loadDB();
+    var ghTime = ghData._syncedAt || 0;
+    var localTime = localDb._syncedAt || 0;
+    if (ghTime <= localTime) return;
+    await saveDB(ghData, false);
+    if (ghData.settings && ghData.settings.adminPassword) {
+      localStorage.setItem('pvstar_admin_pw', ghData.settings.adminPassword);
+    }
+  } catch(e) { /* silent — offline or no network */ }
 }
 
 function saveGhToken() {
@@ -1075,6 +1099,7 @@ function changePwSubmit() {
   try {
     setAdminLang(adminLang);
     await migrateLegacyData();
+    await autoSyncFromGitHub();
     await renderAccList();
   } catch(e) { console.error('Init error:', e); }
 })();
