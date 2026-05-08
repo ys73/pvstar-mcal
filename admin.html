@@ -580,7 +580,7 @@ async function syncToGitHub(db) {
   var content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
   try {
     var hdrs = { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' };
-    var metaR = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE, { headers: hdrs });
+    var metaR = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE + '?t=' + Date.now(), { headers: hdrs });
     if (!metaR.ok) throw new Error('HTTP ' + metaR.status);
     var meta = await metaR.json();
     var putR = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE, {
