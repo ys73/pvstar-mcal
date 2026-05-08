@@ -81,7 +81,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       <h2 id="auth-title">后台数据管理</h2>
       <p id="auth-subtitle">请输入管理员密码以继续</p>
     </div>
-    <input id="auth-pw" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')authSubmit()">
+    <input id="auth-pw" type="password" placeholder="Password" autocomplete="off" onkeydown="if(event.key==='Enter')authSubmit()">
     <div id="auth-err"></div>
     <button id="auth-btn" onclick="authSubmit()">进入管理后台</button>
   </div>
@@ -109,15 +109,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div>
         <label id="chgpw-cur-label" style="font-size:12px;color:#555;display:block;margin-bottom:4px;">当前密码</label>
-        <input id="chgpw-cur" type="password" placeholder="Current password" style="width:100%;padding:9px 12px;border:1px solid #E8E4DF;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='#E8E4DF'">
+        <input id="chgpw-cur" type="password" placeholder="Current password" autocomplete="off" style="width:100%;padding:9px 12px;border:1px solid #E8E4DF;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='#E8E4DF'">
       </div>
       <div>
         <label id="chgpw-new-label" style="font-size:12px;color:#555;display:block;margin-bottom:4px;">新密码</label>
-        <input id="chgpw-new" type="password" placeholder="New password (min 6 chars)" style="width:100%;padding:9px 12px;border:1px solid #E8E4DF;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='#E8E4DF'">
+        <input id="chgpw-new" type="password" placeholder="New password (min 6 chars)" autocomplete="new-password" style="width:100%;padding:9px 12px;border:1px solid #E8E4DF;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='#E8E4DF'">
       </div>
       <div>
         <label id="chgpw-cfm-label" style="font-size:12px;color:#555;display:block;margin-bottom:4px;">确认新密码</label>
-        <input id="chgpw-cfm" type="password" placeholder="Confirm new password" style="width:100%;padding:9px 12px;border:1px solid #E8E4DF;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='#E8E4DF'" onkeydown="if(event.key==='Enter')changePwSubmit()">
+        <input id="chgpw-cfm" type="password" placeholder="Confirm new password" autocomplete="new-password" style="width:100%;padding:9px 12px;border:1px solid #E8E4DF;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='#D97706'" onblur="this.style.borderColor='#E8E4DF'" onkeydown="if(event.key==='Enter')changePwSubmit()">
       </div>
       <div id="chgpw-err" style="font-size:12px;color:#dc2626;min-height:16px;"></div>
       <button id="chgpw-submit-btn" onclick="changePwSubmit()" style="padding:10px;background:#D97706;color:#fff;border:none;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;font-weight:500;transition:background .2s;" onmouseover="this.style.background='#B45309'" onmouseout="this.style.background='#D97706'">确认修改</button>
