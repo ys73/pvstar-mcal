@@ -709,6 +709,7 @@ async function loadDB() {
       if (d && Array.isArray(d.accessories) && d.accessories.length > 0 && Array.isArray(d.packages)) {
         if (!Array.isArray(d.panels)) d.panels = [];
         if (!d.settings) d.settings = {};
+        delete d.settings.ghToken; // strip any token stored by old code
         resolve(d);
       } else {
         resolve(JSON.parse(JSON.stringify(DEFAULT_DB)));
@@ -720,7 +721,8 @@ async function loadDB() {
 
 async function saveDB(db, _ghSync) {
   try {
-    db._syncedAt = Date.now(); // always stamp before saving
+    db._syncedAt = Date.now();
+    if (db.settings) delete db.settings.ghToken; // never persist token in IDB or cloud
     var idb = await openIDB();
     await new Promise(function(resolve, reject) {
       var req = idb.transaction(IDB_STORE,'readwrite').objectStore(IDB_STORE).put(db, IDB_KEY);
