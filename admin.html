@@ -583,7 +583,16 @@ async function fetchCloudData() {
 
 async function syncToGitHub(db) {
   var token = getGhToken();
-  if (!token) return;
+  if (!token) {
+    if (!sessionStorage.getItem('pvstar_token_prompted')) {
+      sessionStorage.setItem('pvstar_token_prompted', '1');
+      if (confirm('☁ 云端同步未配置\n\n请前往「安装参数 → 云端同步」填入 GitHub Token，才能将数据保存到云端。\n\n点击「确定」立即前往配置。')) {
+        showTab('settings');
+        setTimeout(function(){ document.getElementById('settings-ghToken').focus(); }, 300);
+      }
+    }
+    return;
+  }
   var settings = Object.assign({}, db.settings||{});
   delete settings.ghToken; // never store token in public repo
   var pw = localStorage.getItem('pvstar_admin_pw');
