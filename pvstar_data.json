@@ -284,7 +284,7 @@
       ],
       "weight": 0.53,
       "dimensions": "188×171×55",
-      "price": 0,
+      "price": 16.6,
       "description": "10 left end caps, 10 right end caps, 6 grounding lugs",
       "brand": "PVSTAR",
       "packSize": 10,
@@ -321,5 +321,5 @@
     "railOverhang": 50,
     "adminPassword": "123123"
   },
-  "_syncedAt": 1778269289499
+  "_syncedAt": 1778269299721
 }
