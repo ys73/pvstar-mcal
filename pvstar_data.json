@@ -306,9 +306,9 @@
       "id": "panel__giolkenii",
       "nameZh": "Astronergy CHSM48RN(DG)(BLH)/F-BH 460Wp",
       "nameEn": "Astronergy CHSM48RN(DG)(BLH)/F-BH 460Wp",
-      "width": 0,
-      "height": 0,
-      "thickness": 0,
+      "width": 1762,
+      "height": 1134,
+      "thickness": 30,
       "weight": 24.5,
       "power": 460,
       "images": [
@@ -321,5 +321,5 @@
     "railOverhang": 50,
     "adminPassword": "123123"
   },
-  "_syncedAt": 1778269299721
+  "_syncedAt": 1778270537020
 }
