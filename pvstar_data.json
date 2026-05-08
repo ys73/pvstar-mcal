@@ -299,7 +299,9 @@
     }
   ],
   "settings": {
+    "panelGap": 20,
+    "railOverhang": 50,
     "adminPassword": "123456"
   },
-  "_syncedAt": 1778258296288
+  "_syncedAt": 1778258312507
 }
