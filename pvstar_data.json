@@ -204,7 +204,7 @@
       "weight": 0,
       "dimensions": "",
       "price": 0,
-      "description": "",
+      "description": "10 PCS/Pack",
       "brand": "PVSTAR",
       "packSize": 20,
       "calcFrom": "endClamps",
@@ -315,5 +315,5 @@
     "railOverhang": 50,
     "adminPassword": "123123"
   },
-  "_syncedAt": 1778267386771
+  "_syncedAt": 1778268744784
 }
