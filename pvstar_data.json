@@ -181,7 +181,7 @@
       "weight": 7.86,
       "dimensions": "330×233×255",
       "price": 0,
-      "description": "10 Hooks/Pack",
+      "description": "10 PCS/Pack",
       "brand": "PVSTAR",
       "packSize": 10,
       "calcFrom": "hooks",
@@ -308,5 +308,5 @@
     "panelGap": 20,
     "railOverhang": 50
   },
-  "_syncedAt": 1778257606859
+  "_syncedAt": 1778257909853
 }
