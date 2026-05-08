@@ -231,8 +231,8 @@
       "weight": 0,
       "dimensions": "",
       "price": 0,
-      "description": "",
-      "brand": "",
+      "description": "20 PCS/Pack",
+      "brand": "PVSTAR",
       "packSize": 20,
       "calcFrom": "midClamps",
       "contents": [
@@ -315,5 +315,5 @@
     "railOverhang": 50,
     "adminPassword": "123123"
   },
-  "_syncedAt": 1778268744784
+  "_syncedAt": 1778268767584
 }
