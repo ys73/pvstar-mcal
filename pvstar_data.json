@@ -298,6 +298,9 @@
       ]
     }
   ],
-  "settings": {},
-  "_syncedAt": 1778143744550
+  "settings": {
+    "panelGap": 20,
+    "railOverhang": 50
+  },
+  "_syncedAt": 1778256607264
 }
