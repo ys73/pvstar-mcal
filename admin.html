@@ -1055,7 +1055,7 @@ function authSubmit() {
   if (!pw) { err.textContent = T.authErrEmpty || '请输入密码'; return; }
   if (pw === _getAdminPw()) {
     sessionStorage.setItem('pvstar_admin_auth','1');
-    document.getElementById('auth-overlay').style.display = 'none';
+    var _ao = document.getElementById('auth-overlay'); if (_ao) _ao.remove();
   } else {
     err.textContent = T.authErrWrong || '密码错误，请重试';
     document.getElementById('auth-pw').value = '';
@@ -1088,7 +1088,7 @@ function changePwSubmit() {
 }
 (function checkAuth(){
   if (sessionStorage.getItem('pvstar_admin_auth') === '1') {
-    document.getElementById('auth-overlay').style.display = 'none';
+    var _ao = document.getElementById('auth-overlay'); if (_ao) _ao.remove();
   } else {
     setTimeout(function(){ document.getElementById('auth-pw').focus(); }, 100);
   }
