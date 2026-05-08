@@ -190,7 +190,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         <div style="font-size:13px;font-weight:600;margin-bottom:4px;" id="ghSyncTitle">☁ 云端同步 Cloud Sync</div>
         <p style="font-size:11px;color:#888;margin-bottom:12px;" id="ghSyncDesc">填入 GitHub Personal Access Token（需 repo 权限），保存配件数据时自动同步到仓库，其他设备打开页面即可读取最新数据。</p>
         <label style="display:block;font-size:12px;font-weight:500;margin-bottom:5px;" id="ghTokenLabel">GitHub Token</label>
-        <input id="settings-ghToken" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px;font-family:inherit;margin-bottom:10px;">
+        <input id="settings-ghToken" type="text" autocomplete="off" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:13px;font-family:inherit;margin-bottom:10px;font-family:monospace;letter-spacing:.04em;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-primary" onclick="saveGhToken()" id="saveGhTokenBtn">保存 Token</button>
           <button class="btn" onclick="syncFromGitHub()" id="pullGhBtn">↓ 从 GitHub 拉取</button>
