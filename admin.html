@@ -725,7 +725,7 @@ async function loadDB() {
 
 async function saveDB(db, _ghSync) {
   try {
-    db._syncedAt = Date.now();
+    if (_ghSync !== false) db._syncedAt = Date.now(); // only stamp on local saves, not on cloud pull
     if (db.settings) delete db.settings.ghToken; // never persist token in IDB or cloud
     var idb = await openIDB();
     await new Promise(function(resolve, reject) {
