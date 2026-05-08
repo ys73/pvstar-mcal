@@ -261,7 +261,7 @@
       ],
       "weight": 0.73,
       "dimensions": "180×156×70",
-      "price": 0,
+      "price": 7.28,
       "description": "10 PCS/Pack",
       "brand": "PVSTAR",
       "packSize": 10,
@@ -321,5 +321,5 @@
     "railOverhang": 50,
     "adminPassword": "123123"
   },
-  "_syncedAt": 1778269273232
+  "_syncedAt": 1778269289499
 }
