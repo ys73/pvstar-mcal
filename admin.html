@@ -636,12 +636,16 @@ async function autoSyncFromGitHub() {
     var resp = await fetch(url);
     if (!resp.ok) return;
     var ghData = await resp.json();
-    if (!ghData || !Array.isArray(ghData.accessories) || !ghData.accessories.length) return;
-    var ghTime = ghData._syncedAt || 0;
-    if (ghTime === 0) return; // GitHub has no synced data yet
+    var ghTime = (ghData && ghData._syncedAt) || 0;
     var localDb = await loadDB();
     var localTime = localDb._syncedAt || 0;
+    if (ghTime === 0) {
+      // GitHub never synced — if we have local data and a token, push now
+      if (getGhToken() && localTime > 0) { pushToGitHub(); }
+      return;
+    }
     if (ghTime <= localTime) return; // local is same or newer
+    if (!ghData || !Array.isArray(ghData.accessories) || !ghData.accessories.length) return;
     await saveDB(ghData, false);
     _applyCloudSettings(ghData.settings);
   } catch(e) { /* silent — offline or no network */ }
@@ -1114,6 +1118,7 @@ function changePwSubmit() {
   localStorage.setItem('pvstar_admin_pw', nw);
   closeChangePw();
   showToast(T.chgpwSuccess || '密码已修改成功');
+  if (getGhToken()) pushToGitHub(); // sync new password to cloud
 }
 (function checkAuth(){
   if (sessionStorage.getItem('pvstar_admin_auth') === '1') {
