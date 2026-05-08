@@ -157,7 +157,7 @@
       ],
       "weight": 7,
       "dimensions": "2390×100×85",
-      "price": 0,
+      "price": 70.02,
       "description": "4 PCS/Pack",
       "brand": "PVSTAR",
       "packSize": 4,
@@ -321,5 +321,5 @@
     "railOverhang": 50,
     "adminPassword": "123123"
   },
-  "_syncedAt": 1778269221932
+  "_syncedAt": 1778269230643
 }
