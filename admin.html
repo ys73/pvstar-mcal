@@ -573,9 +573,9 @@ async function syncToGitHub(db) {
   var token = getGhToken();
   if (!token) return;
   var settings = Object.assign({}, db.settings||{});
+  delete settings.ghToken; // never store token in public repo
   var pw = localStorage.getItem('pvstar_admin_pw');
   if (pw) settings.adminPassword = pw;
-  settings.ghToken = token; // propagate token to other devices via cloud
   var data = { accessories: db.accessories||[], packages: db.packages||[], panels: db.panels||[], settings: settings, _syncedAt: db._syncedAt || Date.now() };
   var content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
   try {
@@ -596,7 +596,6 @@ async function syncToGitHub(db) {
 function _applyCloudSettings(settings) {
   if (!settings) return;
   if (settings.adminPassword) localStorage.setItem('pvstar_admin_pw', settings.adminPassword);
-  if (settings.ghToken && !getGhToken()) { setGhToken(settings.ghToken); _updateSyncStatus(true); }
 }
 
 function _updateSyncStatus(ok, errMsg) {
@@ -639,10 +638,7 @@ async function autoSyncFromGitHub() {
     var ghData = await resp.json();
     if (!ghData || !Array.isArray(ghData.accessories) || !ghData.accessories.length) return;
     var ghTime = ghData._syncedAt || 0;
-    if (ghTime === 0) { // GitHub has no synced data yet — still restore token if present
-      _applyCloudSettings(ghData.settings);
-      return;
-    }
+    if (ghTime === 0) return; // GitHub has no synced data yet
     var localDb = await loadDB();
     var localTime = localDb._syncedAt || 0;
     if (ghTime <= localTime) return; // local is same or newer
