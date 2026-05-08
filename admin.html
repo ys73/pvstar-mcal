@@ -569,6 +569,18 @@ const GH_FILE   = 'pvstar_data.json';
 function getGhToken() { try { return localStorage.getItem('pvstar_github_token') || ''; } catch(e) { return ''; } }
 function setGhToken(t) { try { localStorage.setItem('pvstar_github_token', t.trim()); } catch(e) {} }
 
+async function fetchCloudData() {
+  // Use GitHub API (not raw CDN) so data is always fresh, no CDN caching issues
+  var hdrs = {'Accept': 'application/vnd.github.v3+json'};
+  var token = getGhToken();
+  if (token) hdrs['Authorization'] = 'token ' + token;
+  var resp = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_FILE, {headers: hdrs});
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  var meta = await resp.json();
+  var content = decodeURIComponent(escape(atob(meta.content.replace(/\n/g,''))));
+  return JSON.parse(content);
+}
+
 async function syncToGitHub(db) {
   var token = getGhToken();
   if (!token) return;
@@ -607,10 +619,7 @@ function _updateSyncStatus(ok, errMsg) {
 
 async function syncFromGitHub() {
   try {
-    var url = 'https://raw.githubusercontent.com/' + GH_REPO + '/master/' + GH_FILE + '?t=' + Date.now();
-    var resp = await fetch(url);
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    var data = await resp.json();
+    var data = await fetchCloudData();
     if (!data || !Array.isArray(data.accessories) || !data.accessories.length) throw new Error('GitHub 上暂无数据，请先在有数据的设备上推送一次');
     if (!data._syncedAt) throw new Error('GitHub 上暂无同步数据，请先点击"立即推送到 GitHub"');
     await saveDB(data, false);
@@ -632,19 +641,15 @@ async function pushToGitHub() {
 
 async function autoSyncFromGitHub() {
   try {
-    var url = 'https://raw.githubusercontent.com/' + GH_REPO + '/master/' + GH_FILE + '?t=' + Date.now();
-    var resp = await fetch(url);
-    if (!resp.ok) return;
-    var ghData = await resp.json();
+    var ghData = await fetchCloudData();
     var ghTime = (ghData && ghData._syncedAt) || 0;
     var localDb = await loadDB();
     var localTime = localDb._syncedAt || 0;
     if (ghTime === 0) {
-      // GitHub never synced — if we have local data and a token, push now
       if (getGhToken() && localTime > 0) { pushToGitHub(); }
       return;
     }
-    if (ghTime <= localTime) return; // local is same or newer
+    if (ghTime <= localTime) return;
     if (!ghData || !Array.isArray(ghData.accessories) || !ghData.accessories.length) return;
     await saveDB(ghData, false);
     _applyCloudSettings(ghData.settings);
